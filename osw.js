@@ -74,7 +74,7 @@ var OSW = {
 	});
     },
 
-    status: function(text) {
+    status: function(status) {
 	var sub = $iq({from:OSW.connection.jid, id:'osw',type:'set'})
 	    .c('pubsub', { xmlns:OSW.SCHEMA.PUBSUB })
             .c('publish', { node:'urn:xmpp:microblog:0' })
