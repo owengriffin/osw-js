@@ -7,7 +7,11 @@ var OSW = {
 	ROSTER: 'jabber:iq:roster',
 	PUBSUB: 'http://jabber.org/protocol/pubsub',
 	ATOM: 'http://www.w3.org/2005/Atom',
-	ACTIVITY_STREAMS: "http://activitystrea.ms/spec/1.0/",
+	ACTIVITY_STREAMS: "http://activitystrea.ms/spec/1.0/"
+    },
+
+    XMLNS: {
+	REGISTER: 'jabber:iq:register'
     },
 
     logger: {
@@ -28,17 +32,59 @@ var OSW = {
 	}
     },
 
+    register: function(username, domain, password, email_address, success_callback, error_callback) {
+	var iq;
+
+	OSW.connection.connect('', domain, '', function(status, error) {
+	    for (name in Strophe.Status) {
+		if (Strophe.Status[name] == status) {
+		    OSW.logger.debug(name + ' error? ' + error);
+		}
+	    }
+	    if (status == Strophe.Status.CONNECTED) {
+		OSW.logger.info('Connected!');
+	    } else if (status == Strophe.Status.CONNFAIL) {
+		OSW.logger.error('Unable to connect. boo');
+	    } else {
+		OSW.logger.error(error);
+		OSW.logger.debug(status);
+	    }
+	});
+
+	OSW.logger.info('Attempting to register with: ' + username + ', ' + password + ', ' + email_address);
+	iq = $iq({'type':'set'})
+	    .c('query', {'xmlns': OSW.XMLNS.REGISTER})
+	    .c('username').t(username).up()
+	    .c('password').t(password).up()
+	    .c('email').t(email_address);
+	OSW.logger.debug(iq.tree());
+	OSW.connection.sendIQ(iq.tree(), function(stanza) {
+	    console.debug(stanza);
+	    success_callback();
+	}, function(stanza) {
+	    var error, message, code;
+	    error = $(stanza).find("error");
+	    message = error.children()[0].tagName;
+	    code = error.attr('code');
+	    error_callback(code, message);
+	}); 
+    },
+
     /** 
-     * Connect to a OneSocialWeb server with the given credentials
+     * Authenticate to a OneSocialWeb server with the given credentials
      **/
-    connect: function(username, password) {
+    authenticate: function(username, domain, password) {
 	OSW.logger.debug('Connecting with username ' + username);
-	if (typeof(OSW.connection) === 'undefined') {
-	    OSW.connection = new Strophe.Connection(OSW.BOSH_SERVICE);
-	    OSW.connection.rawInput = function(msg) { OSW.logger.debug('IN: ' + msg); };
-	    OSW.connection.rawOutput = function(msg) { OSW.logger.debug('OUT: ' + msg); };
-	}
-	OSW.connection.connect(username, password, OSW.onConnect);
+	OSW.connection.connect(username, domain, password, OSW.onConnect);
+    },
+
+    /**
+     * Connect to an XMPP server.
+     **/
+    connect: function() {
+	OSW.connection = new Strophe.Connection(OSW.BOSH_SERVICE);
+	OSW.connection.rawInput = function(msg) { OSW.logger.debug('IN ' + msg); };
+	OSW.connection.rawOutput = function(msg) { OSW.logger.debug('OUT ' + msg); };
     },
 
     contacts: function(callback) {

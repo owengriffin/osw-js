@@ -1908,9 +1908,9 @@ Strophe.Connection.prototype = {
      *      number of connections the server will hold at one time.  This
      *      should almost always be set to 1 (the default).
      */
-    connect: function (jid, pass, callback, wait, hold)
+    connect: function (username, domain, pass, callback, wait, hold)
     {
-        this.jid = jid;
+        this.jid = username + '@' + domain;
         this.pass = pass;
         this.connect_callback = callback;
         this.disconnecting = false;
@@ -1922,7 +1922,7 @@ Strophe.Connection.prototype = {
         this.hold = hold || this.hold;
 
         // parse jid for domain and resource
-        this.domain = Strophe.getDomainFromJid(this.jid);
+        this.domain = domain; // Strophe.getDomainFromJid(this.jid);
 
         // build the body tag
         var body = this._buildBody().attrs({
@@ -2786,8 +2786,8 @@ Strophe.Connection.prototype = {
             that.handlers = [];
             for (i = 0; i < newList.length; i++) {
                 var hand = newList[i];
-                if (hand.isMatch(child) &&
-                    (that.authenticated || !hand.user)) {
+                if (hand.isMatch(child)) {// &&
+//                    (that.authenticated || !hand.user)*/) {
                     if (hand.run(child)) {
                         that.handlers.push(hand);
                     }
@@ -2957,7 +2957,7 @@ Strophe.Connection.prototype = {
             auth_str = auth_str + "\u0000";
             auth_str = auth_str + this.pass;
 
-            this._changeConnectStatus(Strophe.Status.AUTHENTICATING, null);
+            this._changeConnectStatus(Strophe.Status.AUTHENTCATING, null);
             this._sasl_success_handler = this._addSysHandler(
                 this._sasl_success_cb.bind(this), null,
                 "success", null, null);

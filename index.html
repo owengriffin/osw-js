@@ -17,11 +17,33 @@ color: grey;
 #contactlist li {
 color: green;
 }
+#error {
+color: red;
+}
 </style>
 </head>
 
 <body>
 <h1>Strophe Example</h1>
+
+<div id="error" style="display: none"></div>
+
+<form>
+<input type="text" value="vagrant-ubuntu-lucid" id="domain"/>
+<input type="button" value="Connect" id="connect"/>
+</form>
+
+<div id="registration">
+  <h2>Registration</h2>
+  <form>
+  <fieldset>
+  <label>Username<input type="text" id="register_username"/></label>
+    <label>Password<input type="text" id="register_password"/></label>
+    <label>Email address<input type="text" id="register_email"/></label>
+  </fieldset>
+  <input type="button" value="Register" id="register"/>
+  </form>
+</div>
 
 <div id="authentication">
   <h2>Authentication</h2>
@@ -29,7 +51,7 @@ color: green;
   <fieldset>
   <label>Username<input type="text" id="username"/></label>
   <label>Password<input type="text" id="password"/></label>
-  <input type="button" value="Sign In" id="connect"/>
+  <input type="button" value="Sign In" id="authenticate"/>
   </form>
 </div>
 
@@ -55,5 +77,5 @@ color: green;
 
 <hr>
 <address></address>
-<!-- hhmts start -->Last modified: Wed May 26 14:09:22 BST 2010 <!-- hhmts end -->
+<!-- hhmts start -->Last modified: Fri May 28 09:59:28 BST 2010 <!-- hhmts end -->
 </body> </html>
