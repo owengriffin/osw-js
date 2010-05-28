@@ -21,6 +21,9 @@ color: green;
 #error {
 color: red;
 }
+#authenticated {
+display: none;
+}
 </style>
 </head>
 
@@ -29,11 +32,7 @@ color: red;
 
 <div id="error" style="display: none"></div>
 
-<form>
-<input type="text" value="vagrant-ubuntu-lucid" id="domain"/>
-<input type="button" value="Connect" id="connect"/>
-</form>
-
+<div id="unauthenticated">
 <div id="registration">
   <h2>Registration</h2>
   <form>
@@ -55,7 +54,8 @@ color: red;
   <input type="button" value="Sign In" id="authenticate"/>
   </form>
 </div>
-
+</div>
+<div id="authenticated">
 <div id="activities">
   <h2>Activities</h2>
   <form>
@@ -76,12 +76,10 @@ color: red;
   <h2>Subscriptions</h2>
   <input type="button" value="List" id="listsubs"/>
 </div>
-
-<div id="log">
-  <p>Current status:</p>
 </div>
+
 
 <hr>
 <address></address>
-<!-- hhmts start -->Last modified: Fri May 28 14:43:03 BST 2010 <!-- hhmts end -->
+<!-- hhmts start -->Last modified: Fri May 28 15:09:26 BST 2010 <!-- hhmts end -->
 </body> </html>

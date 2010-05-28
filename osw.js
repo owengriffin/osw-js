@@ -104,6 +104,7 @@ var OneSocialWeb = function(options) {
 	// Update the prescence
 	connection.send($pres().tree());
 	options.callback.connected();
+	return true;
     };    
 
     register = function(username,

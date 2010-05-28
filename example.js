@@ -11,6 +11,10 @@ var client = OneSocialWeb(
     {
 	bosh_url: '/bosh', 
 	callback: { 
+	    connected: function() {
+     		$('#unauthenticated').hide();
+		$('#authenticated').show();
+	    },
 	    contact: function(id, name) {
 		$('#contactlist').append('<li id="' + jid2id(id) + '" class="unavailable"><em>' + id + '</em><br/>' + name + '<span class="subscription">?</span></li>'); 
 	    },
@@ -36,7 +40,8 @@ $(document).ready(function () {
      	email_address = $('#register_email').attr('value');
      	client.register(username, DOMAIN, password, email_address, function() {
      	    console.info('Registration complete');
-     	    $('#registration').hide();
+     	    $('#unauthenticated').hide();
+	    $('#authenticated').show();
      	}, function(code, message) {
      	    $('#error').text('Registration failed: ' + code + ' - ' + message).fadeIn('show');
      	});
