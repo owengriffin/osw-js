@@ -1,20 +1,7 @@
-var OSW = {
+var OneSocialWeb = function(options) {
+    var that, logger, connection, callbacks, register, authenticate, contacts, activities, status;
 
-    // The location of the BOSH service
-    BOSH_SERVICE: '/bosh',
-
-    SCHEMA: {
-	ROSTER: 'jabber:iq:roster',
-	PUBSUB: 'http://jabber.org/protocol/pubsub',
-	ATOM: 'http://www.w3.org/2005/Atom',
-	ACTIVITY_STREAMS: "http://activitystrea.ms/spec/1.0/"
-    },
-
-    XMLNS: {
-	REGISTER: 'jabber:iq:register'
-    },
-
-    logger: {
+    logger = {
 	debug: function(msg) {
 	    console.debug(msg);
 	},
@@ -24,41 +11,118 @@ var OSW = {
 	error: function(msg) {
 	    console.error(msg);
 	}
-    },
+    };
 
-    callbacks: {
-	presence: function(jid, show) {
-	    OSW.logger.info('Default presence callback: ' + jid + ' is ' + show);
+    // Initialize a connection to the BOSH endpoint
+    (function() {
+	logger.debug('Creating connection to : ' + options.bosh_url);
+	connection = new Strophe.Connection(options.bosh_url);
+	connection.rawInput = function(msg) { logger.debug('IN ' + msg); };
+	connection.rawOutput = function(msg) { logger.debug('OUT ' + msg); };
+    })();
+
+    // Setup the user-defined callbacks
+    options.callback = options.callback || {};
+    options.callback.connection = options.callback.connection || function(status, error) {
+	logger.info(status);
+    };
+    options.callback.connected = options.callback.connected || function() {
+	logger.info('Connected!');
+    };
+    options.callback.connection_failed = options.callback.connection_failed || function() {
+	logger.error('Unable to establish connection.');
+    };
+    options.callback.presence = options.callback.presence || function(from, show) {
+	logger.info("User callback: Presence received");
+    };
+    options.callback.message = options.callback.message || function(to, from, type, body) {
+	logger.info("User callback: Message received");
+    };
+    options.callback.contact = options.callback.contact || function(jid, name) {
+	logger.info("User callback: Contact received");
+    };
+    options.callback.activity = options.callback.activity || function(jid, text) {
+	logger.info("User callback: Activity received");
+    };
+
+    // All private callbacks
+    callbacks = {};
+
+    // Function which deals with the connection callback
+    callbacks.connection = function(status, error) {
+	for (name in Strophe.Status) {
+	    if (Strophe.Status[name] == status) {
+		options.callback.connection(name);
+	    }
 	}
+	if (status === Strophe.Status.CONNECTED) {
+	    callbacks.connected();
+	} else if (status === Strophe.Status.CONNFAIL) {
+	    options.callback.connection_failed();
+	} else {
+	    logger.error(error);
+	    logger.debug(status);
+	}
+    };
+
+    callbacks.presence = function(msg) {
+	logger.debug('Internal callback: Presence');
+	logger.debug(msg);
+	from = $(msg).attr('from');
+	show = $(msg).find('show').text();
+	options.callback.presence(from, show);
+	return true;
     },
 
-    register: function(username, domain, password, email_address, success_callback, error_callback) {
+    /**
+     * Callback when there is a new message
+     **/
+     callbacks.message = function(msg) {
+	 var to, from, type, elems;
+	 logger.debug("Internal callback: Message");
+	 logger.debug(msg);
+	 to = msg.getAttribute('to');
+	 from = msg.getAttribute('from');
+	 type = msg.getAttribute('type');
+	 elems = msg.getElementsByTagName('body');
+	
+	 if (type == "chat" && elems.length > 0) {
+	     options.callbacks.message(to, from, type, Strophe.getText(elems[0])); 
+	 }
+	 return true;
+     };
+
+    // Callback for when a successfull connection
+    callbacks.connected = function() {
+	logger.debug("Connected.");
+	// Bind message and prescence handlers
+	connection.addHandler(callbacks.message, null, 'message', null, null,  null); 
+	connection.addHandler(callbacks.presence, null, 'presence', null, null, null); 
+	// Update the prescence
+	connection.send($pres().tree());
+	options.callback.connected();
+    };    
+
+    register = function(username,
+			    domain, 
+			    password, 
+			    email_address, 
+			    success_callback, 
+			    error_callback) {
 	var iq;
 
-	OSW.connection.connect('', domain, '', function(status, error) {
-	    for (name in Strophe.Status) {
-		if (Strophe.Status[name] == status) {
-		    OSW.logger.debug(name + ' error? ' + error);
-		}
-	    }
-	    if (status == Strophe.Status.CONNECTED) {
-		OSW.logger.info('Connected!');
-	    } else if (status == Strophe.Status.CONNFAIL) {
-		OSW.logger.error('Unable to connect. boo');
-	    } else {
-		OSW.logger.error(error);
-		OSW.logger.debug(status);
-	    }
-	});
+	// Tell Strophe to initiate a connection. This only appears to have the purpose
+	// of setting the domain. There must be a better way of doing this.
+	connection.connect('', domain, '', callbacks.connection);
 
-	OSW.logger.info('Attempting to register with: ' + username + ', ' + password + ', ' + email_address);
+	logger.info('Attempting to register with: ' + username + ', ' + password + ', ' + email_address);
 	iq = $iq({'type':'set'})
-	    .c('query', {'xmlns': OSW.XMLNS.REGISTER})
+	    .c('query', {'xmlns': OneSocialWeb.XMLNS.REGISTER})
 	    .c('username').t(username).up()
 	    .c('password').t(password).up()
 	    .c('email').t(email_address);
-	OSW.logger.debug(iq.tree());
-	OSW.connection.sendIQ(iq.tree(), function(stanza) {
+	logger.debug(iq.tree());
+	connection.sendIQ(iq.tree(), function(stanza) {
 	    console.debug(stanza);
 	    success_callback();
 	}, function(stanza) {
@@ -68,78 +132,88 @@ var OSW = {
 	    code = error.attr('code');
 	    error_callback(code, message);
 	}); 
-    },
+    };
 
     /** 
      * Authenticate to a OneSocialWeb server with the given credentials
      **/
-    authenticate: function(username, domain, password) {
-	OSW.logger.debug('Connecting with username ' + username);
-	OSW.connection.connect(username, domain, password, OSW.onConnect);
-    },
+    authenticate = function(username, domain, password) {
+	logger.debug('Connecting with username ' + username);
+	connection.connect(username, domain, password, callbacks.connection);
+    };
+
+    /** Private method: Probes the prescene of a specified jid */
+    probe_presence = function(jid) {
+	connection.send($pres(
+	    {'type':'probe',
+	     'from':connection.jid, 
+	     'to':jid
+	    }).tree());
+    };
+
+    callbacks.roster = {};
+    callbacks.roster.success = function(stanza) {
+	$(stanza).find("item").each(function() {
+	    var jid = $(this).attr('jid');
+	    probe_presence(jid);
+	    options.callback.contact(jid, $(this).attr('name'));
+	});
+    };
+    callbacks.roster.failure = function(stanza) {
+	logger.error("Unable to list roster");
+    };	
 
     /**
-     * Connect to an XMPP server.
-     **/
-    connect: function() {
-	OSW.connection = new Strophe.Connection(OSW.BOSH_SERVICE);
-	OSW.connection.rawInput = function(msg) { OSW.logger.debug('IN ' + msg); };
-	OSW.connection.rawOutput = function(msg) { OSW.logger.debug('OUT ' + msg); };
-    },
+     * Fetch a list of contacts from the server
+     */
+    contacts = function(contact_callback) {
+	var iq = $iq({
+	    'from': connection.jid,
+	    'type': 'get'
+	}).c('query', { xmlns:OneSocialWeb.XMLNS.ROSTER });
+	connection.sendIQ(iq.tree(), callbacks.roster.success, callbacks.roster.failure);
+    };
 
-    contacts: function(callback) {
-	var sub = $iq({from:OSW.connection.jid, id:'rooster_1',type:'get'})
-	    .c('query', { xmlns:OSW.SCHEMA.ROSTER });
-	var callbacks = {
-	    success: function(stanza) {
-		OSW.logger.info('Sent successfully');
-		$(stanza).find("item").each(function() {
-		    var jid = $(this).attr('jid');
-		    OSW.connection.send($pres({'type':'probe','from':OSW.connection.jid, 'to':jid}).tree());
-		    callback(jid, $(this).attr('name'));
-		});
-	    },
-	    error: function(stanza) {
-		OSW.logger.error("Failed to send IQ");
-		OSW.logger.debug(stanza);
-	    }
-	};
-	OSW.connection.sendIQ(sub.tree(), callbacks.success, callbacks.failure);
-    },
-
-    activities: function(callback) {
-	OSW.callback = callback;
-	var sub = $iq({from:OSW.connection.jid, id:'osw2', type:'get'})
-	    .c('pubsub', { xmlns: OSW.SCHEMA.PUBSUB })
-	    .c('items',{'node':'http://onesocialweb.org/spec/1.0/inbox'});
-	var stanza = sub.tree();
-	OSW.logger.debug(stanza);
-	OSW.connection.sendIQ(stanza, OSW.onActivities, function(st) {
-	    OSW.logger.error('Unable to send IQ to receive activities');
-	    OSW.logger.debug(st);
+    callbacks.activities = function(stanza) {
+	$(stanza).find("entry").each(function() {
+	    options.callback.activity($(this).find("actor uri").text(), $(this).find("title").text());
 	});
-    },
+    };
+    activities = function() {
+	var sub = $iq({
+	    'from' : connection.jid, 
+	    'type' : 'get'
+	}).c('pubsub', {
+	    'xmlns': OneSocialWeb.SCHEMA.PUBSUB 
+	}).c('items', {
+	    'node' : 'http://onesocialweb.org/spec/1.0/inbox'
+	});
+	connection.sendIQ(sub.tree(), callbacks.activities, function(st) {
+	    logger.error('Unable to send IQ to receive activities');
+	    logger.debug(st);
+	});
+    };
 
-    status: function(status) {
-	var sub = $iq({from:OSW.connection.jid, id:'osw',type:'set'})
-	    .c('pubsub', { xmlns:OSW.SCHEMA.PUBSUB })
-            .c('publish', { node:'urn:xmpp:microblog:0' })
-	    .c('item')
-	    .c('entry', {
-		'xmlns': OSW.SCHEMA.ATOM,
-		'xmlns:activity': OSW.SCHEMA.ACTIVITY_STREAMS,
-		'xmlns:osw': 'http://onesocialweb.org/spec/1.0/'
-	    })
-	    .c('published')
-	    .up()
-	    .c('title').t(status)
-	    .up()
+    status = function(text) {
+	var sub = $iq({
+	    'from': connection.jid, 
+	    'type': 'set'
+	}).c('pubsub', { 
+	    'xmlns': OneSocialWeb.SCHEMA.PUBSUB 
+	}).c('publish', { 
+	    'node': 'urn:xmpp:microblog:0' 
+	}).c('item').c('entry', {
+	    'xmlns': OneSocialWeb.SCHEMA.ATOM,
+	    'xmlns:activity': OneSocialWeb.SCHEMA.ACTIVITY_STREAMS,
+	    'xmlns:osw': 'http://onesocialweb.org/spec/1.0/'
+	}).c('published').up()
+	    .c('title').t(text).up()
 	    .c('activity:verb').t('http://activitystrea.ms/schema/1.0/post')
 	    .up()
 	    .c('activity:object')
 	    .c('activity:object-type').t('http://onesocialweb.org/spec/1.0/object/status')
 	    .up()
-	    .c('content', {'type':'text/plain'}).t(status)
+	    .c('content', {'type':'text/plain'}).t(text)
 	    .up()
 	    .up()
 	    .c('osw:acl-rule')
@@ -149,10 +223,10 @@ var OSW = {
 
 	var stanza=sub.tree();
 	console.debug(stanza);
-	OSW.connection.sendIQ(stanza, 
+	connection.sendIQ(stanza, 
                           function(stanza) {
 			          sendiq_good = true;
-			          OSW.logger.info("iq sent succesfully.");
+			          logger.info("iq sent succesfully.");
 		          },
 		          function(stz) {
 			      
@@ -160,71 +234,26 @@ var OSW = {
 			          sendiq_good = true;
 			      }
 			      console.debug(stz);
-			      OSW.logger.error("failed to send iq.");
+			      logger.error("failed to send iq.");
 			      
 		          });
-    },
+    };
 
-    /**
-     * Callback when connection is complete.
-     **/
-    onConnect: function(status) {
-	if (status == Strophe.Status.CONNECTED) {
-	    OSW.logger.info('Connected!');
-	    OSW.onConnected();
-	} else if (status == Strophe.Status.CONNFAIL) {
-	    OSW.logger.error('Unable to connect. boo');
-	}
-    },
+    that = {};
+    that.register = register;
+    that.authenticate = authenticate;
+    that.contacts = contacts;
+    that.activities = activities;
+    that.status = status;
 
-    /**
-     * Callback when there is a successfull connection.
-     **/
-    onConnected: function() {
-	// Bind message and prescence handlers
-	OSW.connection.addHandler(OSW.onMessage, null, 'message', null, null,  null); 
-
-	// Update the prescence
-	OSW.connection.send($pres().tree());
-
-	OSW.connection.addHandler(OSW.onPresence, null, 'presence', null, null, null); 
-    },
-
-    onPresence: function(msg) {
-	OSW.logger.debug(msg);
-	from = $(msg).attr('from');
-	show = $(msg).find('show').text();
-	OSW.callbacks.presence(from, show);
-	return true;
-    },
-
-    /**
-     * Callback when there is a new message
-     **/
-    onMessage: function(msg) {
-	OSW.logger.info('Got message');
-	OSW.logger.debug(msg);
-	var to = msg.getAttribute('to');
-	var from = msg.getAttribute('from');
-	var type = msg.getAttribute('type');
-	var elems = msg.getElementsByTagName('body');
-	
-	if (type == "chat" && elems.length > 0) {
-	    var body = elems[0];
-	    OSW.logger.info('ECHOBOT: I got a message from ' + from + ': ' + 
-		Strophe.getText(body));
-	}
-	
-	// we must return true to keep the handler alive.  
-	// returning false would remove it after it finishes.
-	return true;
-    },
-
-    onActivities: function(stanza) {
-	OSW.logger.info('Received activities');
-	OSW.logger.debug(stanza);
-	$(stanza).find("entry").each(function() {
-	    OSW.callback($(this).find("actor uri").text(), $(this).find("title").text());
-	});
-    }
+    return that;
 };
+OneSocialWeb.SCHEMA = {
+    PUBSUB: 'http://jabber.org/protocol/pubsub',
+    ATOM: 'http://www.w3.org/2005/Atom',
+    ACTIVITY_STREAMS: "http://activitystrea.ms/spec/1.0/"
+}
+OneSocialWeb.XMLNS = {
+    ROSTER: 'jabber:iq:roster',
+    REGISTER: 'jabber:iq:register'
+}
