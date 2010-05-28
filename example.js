@@ -1,5 +1,9 @@
 function jid2id(jid) {
-    return jid.match(/(.*)@.*/)[1];
+    var match = jid.match(/(.*)@.*/);
+    if (match) {
+	return match[1];
+    }
+    return '';
 }
 
 var DOMAIN = "vagrant-ubuntu-lucid";
@@ -8,13 +12,19 @@ var client = OneSocialWeb(
 	bosh_url: '/bosh', 
 	callback: { 
 	    contact: function(id, name) {
-		$('#contactlist').append('<li id="' + jid2id(id) + '" class="unavailable"><em>' + id + '</em><br/>' + name + '</li>'); 
+		$('#contactlist').append('<li id="' + jid2id(id) + '" class="unavailable"><em>' + id + '</em><br/>' + name + '<span class="subscription">?</span></li>'); 
 	    },
 	    activity: function(jid, activity) {
 		$('#activitylist').append('<li><em>' + jid + '</em><br/>' + activity + '</li>');
 	    },
 	    presence: function(jid, show) {
 		$('#' + jid2id(jid)).removeClass().addClass(show);
+	    },
+	    subscription: function(jid, type) {
+		var element_jid = jid2id(jid);
+		if (element_jid) {
+		    $('#' + element_jid + ' span.subscription:first').html(type);
+		}
 	    }
 	}
     });
@@ -47,4 +57,7 @@ $(document).ready(function () {
     $('#listcontacts').bind('click', function() {
      	client.contacts();
      });
+    $('#listsubs').bind('click', function() {
+	client.subscriptions();
+    });
 });

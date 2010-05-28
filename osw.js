@@ -1,5 +1,5 @@
 var OneSocialWeb = function(options) {
-    var that, logger, connection, callbacks, register, authenticate, contacts, activities, status;
+    var that, logger, connection, callbacks, register, authenticate, contacts, activities, status, subscriptions;
 
     logger = {
 	debug: function(msg) {
@@ -43,6 +43,9 @@ var OneSocialWeb = function(options) {
     };
     options.callback.activity = options.callback.activity || function(jid, text) {
 	logger.info("User callback: Activity received");
+    };
+    options.callback.subscription = options.callback.subscription || function(jid, type) {
+	logger.info("User callback: Subscription to " + jid);
     };
 
     // All private callbacks
@@ -222,7 +225,6 @@ var OneSocialWeb = function(options) {
 	    .c('osw:acl-subject', {'type':'http://onesocialweb.org/spec/1.0/acl/subject/everyone'});
 
 	var stanza=sub.tree();
-	console.debug(stanza);
 	connection.sendIQ(stanza, 
                           function(stanza) {
 			          sendiq_good = true;
@@ -239,12 +241,32 @@ var OneSocialWeb = function(options) {
 		          });
     };
 
+    callbacks.subscription = function(stanza) {
+	$(stanza).find("subscription").each(function() {
+	    var subscription = $(this);
+	    options.callback.subscription(subscription.attr('jid'), subscription.attr('subscription'));
+	});
+    };
+    subscriptions = function() {
+	connection.sendIQ($iq({
+	    'from': connection.jid, 
+	    'type': 'get'/*,
+	    'to': 'pubsub.' + connection.domain*/
+	}).c('pubsub', { 
+	    'xmlns': OneSocialWeb.SCHEMA.PUBSUB
+	}).c('subscriptions', { 
+	    'xmlns': OneSocialWeb.SCHEMA.PUBSUB,
+	    'node': OneSocialWeb.XMLNS.MICROBLOG
+	}).tree(), callbacks.subscription);
+    };
+
     that = {};
     that.register = register;
     that.authenticate = authenticate;
     that.contacts = contacts;
     that.activities = activities;
     that.status = status;
+    that.subscriptions = subscriptions;
 
     return that;
 };
@@ -255,5 +277,6 @@ OneSocialWeb.SCHEMA = {
 }
 OneSocialWeb.XMLNS = {
     ROSTER: 'jabber:iq:roster',
-    REGISTER: 'jabber:iq:register'
+    REGISTER: 'jabber:iq:register',
+    MICROBLOG: 'urn:xmpp:microblog:0'
 }
