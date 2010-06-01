@@ -6,7 +6,7 @@ function jid2id(jid) {
     return '';
 }
 
-var DOMAIN = "vagrant-ubuntu-lucid";
+var DOMAIN = "vagrantbase.local";
 var client = OneSocialWeb(
     {
 	bosh_url: '/bosh', 
@@ -29,24 +29,48 @@ var client = OneSocialWeb(
 		if (element_jid) {
 		    $('#' + element_jid + ' span.subscription:first').html(type);
 		}
+	    },
+	    authentication_failed: function() {
+		$('#authentication_error_message').text('Unable to establish connection or invalid credentials provided.');
+		$('#authentication_error').show();
 	    }
 	}
     });
 $(document).ready(function () {
-    $('#register').bind('click', function() {
-     	var username, password, email_address;
-     	username = $('#register_username').attr('value');
-     	password = $('#register_password').attr('value');
-     	email_address = $('#register_email').attr('value');
-     	client.register(username, DOMAIN, password, email_address, function() {
-     	    console.info('Registration complete');
-     	    $('#unauthenticated').hide();
-	    $('#authenticated').show();
-     	}, function(code, message) {
-     	    $('#error').text('Registration failed: ' + code + ' - ' + message).fadeIn('show');
-     	});
+    $('#registration').dialog(
+	{
+	    autoOpen: false,
+	    height: 300,
+	    width: 350,
+	    modal: true,
+	    buttons: {
+		'Register': function() {
+		    var username, password, email_address;
+     		    username = $('#register_username').attr('value');
+     		    password = $('#register_password').attr('value');
+     		    email_address = $('#register_email').attr('value');
+     		    client.register(username, DOMAIN, password, email_address, function() {
+     			console.info('Registration complete');
+			$(this).dialog('close');
+     		    }, function(code, message) {
+     			$('#registration_error_message').text(code + ' - ' + message);
+			$('#registration_error').show();
+     		    });	
+		    
+		},
+		'Cancel': function() {
+		    $(this).dialog('close');
+		}
+	    }
+	});
+    $('#register_button').button({icons: {
+                primary: 'ui-icon-person'
+    }}).bind('click', function() {
+     	$('#registration').dialog('open');
      });
-    $('#authenticate').bind('click', function () {
+    $('#authenticate_button').button({icons: {
+                primary: 'ui-icon-key'
+    }}).bind('click', function () {
      	client.authenticate($('#username')[0].value, DOMAIN, $('#password')[0].value);
     });
      $('#listactivities').bind('click', function() {

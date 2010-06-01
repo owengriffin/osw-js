@@ -32,6 +32,9 @@ var OneSocialWeb = function(options) {
     options.callback.connection_failed = options.callback.connection_failed || function() {
 	logger.error('Unable to establish connection.');
     };
+    options.callback.authentication_failed = options.callback.authentication_failed || function() {
+	logger.error('Unable to establish connection.');
+    };
     options.callback.presence = options.callback.presence || function(from, show) {
 	logger.info("User callback: Presence received");
     };
@@ -62,6 +65,8 @@ var OneSocialWeb = function(options) {
 	    callbacks.connected();
 	} else if (status === Strophe.Status.CONNFAIL) {
 	    options.callback.connection_failed();
+	} else if (status === Strophe.Status.AUTHFAIL) {
+	    options.callback.authentication_failed();
 	} else {
 	    logger.error(error);
 	    logger.debug(status);

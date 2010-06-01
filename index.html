@@ -3,12 +3,24 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-15">
 <title>Strophe Example</title>
-<script type='text/javascript' src='http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.min.js'></script>
+<script type='text/javascript' src='jquery-1.4.2.min.js'></script>
+<script type="text/javascript" src="jquery-ui-1.8.1.custom.min.js"></script>
 <script type='text/javascript' src='strophe.js'></script>
 <!--<script type='text/javascript' src='strophe.pubsub.js'></script>-->
 <script type='text/javascript' src='osw.js'></script>
 <script type='text/javascript' src='example.js'></script>
+<link type="text/css" href="css/smoothness/jquery-ui-1.8.1.custom.css" rel="Stylesheet" />	
+
 <style type="text/css">
+body { font-size: 62.5%; }
+label, input { display:block; }
+input.text { margin-bottom:12px; width:95%; padding: .4em; }
+#registration_error {
+margin-top: 10px;
+}
+fieldset { padding:0; border:0; margin-top:10px; }
+h1 { font-size: 1.2em; margin: .6em 0; }
+
 #contactlist li.away, #contactlist li.xa {
 color: red;
 }
@@ -24,36 +36,61 @@ color: red;
 #authenticated {
 display: none;
 }
+body {
+background-color: #333;
+}
 </style>
 </head>
 
 <body>
-<h1>Strophe Example</h1>
-
 <div id="error" style="display: none"></div>
 
 <div id="unauthenticated">
-<div id="registration">
-  <h2>Registration</h2>
+<div id="registration" title="Registration">
+  <div id="registration_error" style="display: none" class="ui-state-error ui-corner-all">
+    <p>
+    <span style="float: left; margin: 0 0.3em;" class="ui-icon ui-icon-alert"></span> 
+	<strong>Error:</strong> <span id="registration_error_message">Yikes! You shouldn't see this!</span></p>
+    </div> 
   <form>
   <fieldset>
-  <label>Username<input type="text" id="register_username"/></label>
-    <label>Password<input type="text" id="register_password"/></label>
-    <label>Email address<input type="text" id="register_email"/></label>
+ 
+  <label>Username<input type="text" id="register_username" class="text ui-widget-content ui-corner-all"/></label>
+    <label>Password<input type="text" id="register_password" class="text ui-widget-content ui-corner-all"/></label>
+    <label>Email address<input type="text" id="register_email" class="text ui-widget-content ui-corner-all"/></label>
   </fieldset>
-  <input type="button" value="Register" id="register"/>
   </form>
+
 </div>
 
-<div id="authentication">
-  <h2>Authentication</h2>
+<!-- start -->
+<div style="display: block; outline: 0px none; position: relative; height: auto; width: 350px;" class="ui-dialog ui-widget ui-widget-content ui-corner-all  ui-draggable ui-resizable" tabindex="-1" role="dialog" aria-labelledby="ui-dialog-title-login">
+<div class="ui-dialog-titlebar ui-widget-header ui-corner-all ui-helper-clearfix" unselectable="on" style="-moz-user-select: none;">
+  <span class="ui-dialog-title" id="ui-dialog-title-login" unselectable="on" style="-moz-user-select: none;">Authenticate</span></div>
+
+  <div id="authentication" class="ui-dialog-content ui-widget-content" style="width: auto; min-height: 0px; ">
+  <div class="ui-state-error ui-corner-all" style="display: none" id="authentication_error">
+    <p>
+    <span class="ui-icon ui-icon-alert" style="float: left; margin: 0pt 0.3em;"></span> 
+	<strong>Error:</strong> <span id="authentication_error_message">500 - internal-server-error</span></p>
+    </div> 
   <form>
   <fieldset>
-  <label>Username<input type="text" id="username"/></label>
-  <label>Password<input type="text" id="password"/></label>
-  <input type="button" value="Sign In" id="authenticate"/>
+ 
+  <label>Username<input type="text" class="text ui-widget-content ui-corner-all" id="username"></label>
+    <label>Password<input type="text" class="text ui-widget-content ui-corner-all" id="password"></label>
+  </fieldset>
   </form>
+
 </div>
+
+<div class="ui-dialog-buttonpane ui-widget-content ui-helper-clearfix">
+<button id="authenticate_button">Authenticate</button>
+  <button id="register_button">Register</button>
+</div></div>
+
+<!-- end -->
+
 </div>
 <div id="authenticated">
 <div id="activities">
@@ -78,8 +115,4 @@ display: none;
 </div>
 </div>
 
-
-<hr>
-<address></address>
-<!-- hhmts start -->Last modified: Fri May 28 15:09:26 BST 2010 <!-- hhmts end -->
 </body> </html>
