@@ -6,7 +6,7 @@ function jid2id(jid) {
     return '';
 }
 
-var DOMAIN = "vagrantbase.local";
+var DOMAIN = "vagrant-ubuntu-lucid";
 var client = OneSocialWeb(
     {
 	bosh_url: '/bosh', 
