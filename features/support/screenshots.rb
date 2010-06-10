@@ -23,6 +23,7 @@ module Screenshots
     # Other platforms...
     def embed_screenshot(id)
       STDERR.puts "Sorry - no screenshots on your platform yet."
+      # puts @browser.text
     end
   end
 end

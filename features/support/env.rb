@@ -30,8 +30,12 @@ end
 
 # "before all"
 browser = Browser.new
+fw_browser = {}
+fw_port_count = 10000
 
 Before do
+  @fw_browser = {}
+  @fw_port_count = fw_port_count
   @browser = browser
 end
 
