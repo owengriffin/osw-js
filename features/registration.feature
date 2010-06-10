@@ -26,5 +26,18 @@ Feature: Registration
     And I enter an invalid email address into "register_email"
     When I click "Register"
     Then I should see the text "Please enter a valid email address"
-    
+
+  Scenario: Existing jid
+    Given I am on the index page
+    When I enter a random username into "register_username"
+    And I enter a random password into "register_password"
+    And I enter a valid email address into "register_email"
+    When I click "Register"
+    Then I should see the text "Registration successful"    
+    Given I am on the index page
+    When I enter the same username into "register_username"
+    And I enter a random password into "register_password"
+    And I enter a valid email address into "register_email"
+    When I click "Register"
+    Then I should see the text "Registration failed: 409 - conflict"
   

@@ -12,6 +12,10 @@ When /^I enter a random username into "([^\"]*)"$/ do |arg1|
   @browser.text_field(:id, arg1).value = @username
 end
 
+When /^I enter the same username into "([^\"]*)"$/ do |arg1|
+  @browser.text_field(:id, arg1).value = @username
+end
+
 When /^I enter a random password into "([^\"]*)"$/ do |arg1|
   @password = random_string
   @browser.text_field(:id, arg1).value = @password
