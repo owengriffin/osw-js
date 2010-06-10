@@ -25,6 +25,6 @@ Feature: Registration
     And I enter a random password into "register_password"
     And I enter an invalid email address into "register_email"
     When I click "Register"
-    Then I should see the text "Registration successful"
+    Then I should see the text "Please enter a valid email address"
     
   
