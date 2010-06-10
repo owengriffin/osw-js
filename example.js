@@ -39,7 +39,7 @@ $(document).ready(function () {
      	password = $('#register_password').attr('value');
      	email_address = $('#register_email').attr('value');
      	client.register(username, DOMAIN, password, email_address, function() {
-     	    console.info('Registration complete');
+     	    $('#status').text('Registration successful');
      	    $('#unauthenticated').hide();
 	    $('#authenticated').show();
      	}, function(code, message) {
