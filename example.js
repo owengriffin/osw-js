@@ -29,6 +29,17 @@ var client = OneSocialWeb(
 		if (element_jid) {
 		    $('#' + element_jid + ' span.subscription:first').html(type);
 		}
+	    },
+	    presence_subscription_request: function(jid) {
+		var button = $(document.createElement('input'));
+		button.attr('type', 'button');
+		button.attr('value', 'Accept');
+		$('#status').text('You have received a presence subscription from: ' + jid);
+		$('#status').append(button);
+		button.bind('click', function() {
+		    client.confirm_contact(jid);
+		    $('#status').html('');
+		});
 	    }
 	}
     });
@@ -39,7 +50,7 @@ $(document).ready(function () {
      	password = $('#register_password').attr('value');
      	email_address = $('#register_email').attr('value');
      	client.register(username, DOMAIN, password, email_address, function() {
-     	    $('#status').text('Registration successful');
+     	    $('#status').text('Registration successful.');
      	    $('#unauthenticated').hide();
 	    $('#authenticated').show();
      	}, function(code, message) {
@@ -64,5 +75,8 @@ $(document).ready(function () {
      });
     $('#listsubs').bind('click', function() {
 	client.subscriptions();
+    });
+    $('#add_contact_button').bind('click', function() {
+	client.add_contact($('#add_contact_jid')[0].value);
     });
 });

@@ -1,15 +1,21 @@
 var OneSocialWeb = function(options) {
-    var that, logger, connection, callbacks, register, authenticate, contacts, activities, status, subscriptions;
+    var that, logger, connection, callbacks, register, authenticate, contacts, activities, status, subscriptions, add_contact, confirm_contact;
 
     logger = {
 	debug: function(msg) {
-	    console.debug(msg);
+	    if (typeof(console) !== 'undefined') {
+		console.debug(msg);
+	    }
 	},
 	info: function(msg) {
-	    console.info(msg);
+	    if (typeof(console) !== 'undefined') {
+		console.info(msg);
+	    }
 	},
 	error: function(msg) {
-	    console.error(msg);
+	    if (typeof(console) !== 'undefined') {
+		console.error(msg);
+	    }
 	}
     };
 
@@ -44,9 +50,14 @@ var OneSocialWeb = function(options) {
     options.callback.activity = options.callback.activity || function(jid, text) {
 	logger.info("User callback: Activity received");
     };
+    // Callback from a pub-sub list subscriptions
     options.callback.subscription = options.callback.subscription || function(jid, type) {
 	logger.info("User callback: Subscription to " + jid);
     };
+    options.callback.presence_subscription_request = options.callback.presence_subscription_request || function(jid) {
+	logger.info("User callback: Received presence subscription request from: " + jid);
+    };
+    
 
     // All private callbacks
     callbacks = {};
@@ -69,12 +80,24 @@ var OneSocialWeb = function(options) {
     };
 
     callbacks.presence = function(msg) {
+	var message, type, from;
+	message = $(msg);
+	type = message.attr('type');
+	from = message.attr('from');
+
 	logger.debug('Internal callback: Presence');
-	logger.debug(msg);
-	from = $(msg).attr('from');
-	show = $(msg).find('show').text();
-	options.callback.presence(from, show);
-	return true;
+	logger.debug('Type: ' + type + ', From: ' + from);
+
+	if (type === 'subscribe') {
+	    // Received a subscription request
+	    options.callback.presence_subscription_request(from);
+	}
+	if (from) {
+	    show = $(msg).find('show').text();
+	    options.callback.presence(from, show);
+	    return true;
+	}
+	
     },
 
     /**
@@ -95,12 +118,19 @@ var OneSocialWeb = function(options) {
 	 return true;
      };
 
+    callbacks.iq = function(msg) {
+	logger.info('IQ callback');
+	logger.debug(msg);
+	return true;
+    };
+
     // Callback for when a successfull connection
     callbacks.connected = function() {
 	logger.debug("Connected.");
 	// Bind message and prescence handlers
 	connection.addHandler(callbacks.message, null, 'message', null, null,  null); 
 	connection.addHandler(callbacks.presence, null, 'presence', null, null, null); 
+	connection.addHandler(callbacks.iq, null, 'iq', null, null, null); 
 	// Update the prescence
 	connection.send($pres().tree());
 	options.callback.connected();
@@ -127,7 +157,6 @@ var OneSocialWeb = function(options) {
 	    .c('email').t(email_address);
 	logger.debug(iq.tree());
 	connection.sendIQ(iq.tree(), function(stanza) {
-	    console.debug(stanza);
 	    success_callback();
 	}, function(stanza) {
 	    var error, message, code;
@@ -236,7 +265,7 @@ var OneSocialWeb = function(options) {
                               if (stz) {
 			          sendiq_good = true;
 			      }
-			      console.debug(stz);
+			      logger.debug(stz);
 			      logger.error("failed to send iq.");
 			      
 		          });
@@ -261,6 +290,40 @@ var OneSocialWeb = function(options) {
 	}).tree(), callbacks.subscription);
     };
 
+    add_contact = function(jid) {
+	logger.info('Adding contact ' + jid);
+	// IQ message which adds the contact to the roster
+	connection.sendIQ($iq({
+	    'from': connection.jid,
+	    'type': 'set'
+	}).c('item', {
+	    'jid': jid,
+	    'name': jid
+	}).c('group').t('MyBuddies'));
+	// Send a subscription request to a user
+	connection.send($pres({
+	    'from': connection.jid,
+	    'to': jid,
+	    'type': 'subscribe'
+	}));	    
+    };
+
+    confirm_contact = function(jid) {
+	connection.sendIQ($iq({
+	    'type': 'set'
+	}).c('query', {
+	    'xmlns': OneSocialWeb.XMLNS.ROSTER
+	}).c('item', {
+	    'jid': jid,
+	    'name': jid
+	}).c('group').t('MyBuddies'));
+	connection.send($pres({
+	    'from': connection.jid,
+	    'to': jid,
+	    'type': 'subscribed'
+	}));	    
+    };
+
     that = {};
     that.register = register;
     that.authenticate = authenticate;
@@ -268,6 +331,8 @@ var OneSocialWeb = function(options) {
     that.activities = activities;
     that.status = status;
     that.subscriptions = subscriptions;
+    that.add_contact = add_contact;
+    that.confirm_contact = confirm_contact;
 
     return that;
 };

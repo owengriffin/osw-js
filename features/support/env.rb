@@ -17,6 +17,7 @@ else
     Browser = Celerity::Browser
   else
      begin
+       puts "Using firewatir"
        require 'firewatir'
        Browser = FireWatir::Firefox
      rescue LoadError => ex
@@ -29,17 +30,19 @@ else
 end
 
 # "before all"
-browser = Browser.new
-fw_browser = {}
-fw_port_count = 10000
+browser_instance = {}
+browser_port_count = 6429
+jid = {}
 
 Before do
-  @fw_browser = {}
-  @fw_port_count = fw_port_count
-  @browser = browser
+  @browser_instance = browser_instance
+  @browser_port_count = browser_port_count
+  @jid = {}
 end
 
 # "after all"
 at_exit do
-  browser.close
+  browser_instance.keys.each do |key|
+    browser_instance[key].close
+  end
 end

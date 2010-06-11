@@ -1,6 +1,6 @@
 Feature: Registration
   In order to access the system
-  As an anonymous yser
+  As an anonymous user
   I want to be able to register on the system
 
   Scenario: Basic registration

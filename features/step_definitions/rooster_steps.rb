@@ -1,16 +1,19 @@
-Given /^there is a user called "([^\"]*)"$/ do |arg1|
-  if not @fw_browser.has_key? arg1
-    @fw_port_count = @fw_port_count + 1
-    @fw_browser[arg1] = FireWatir::Firefox.new(:port => @fw_port_count)
-    @browser = @fw_browser[arg1] 
+
+
+Given /^there is a user called \"(.*)\"$/ do |who|
+  if not @browser_instance.has_key? who
     steps %Q{
-Given "#{arg1}" is on the index page
-When "#{arg1}" enters a random username into "register_username"
-And "#{arg1}" enters a random password into "register_password"
-When "#{arg1}" clicks "Register"
-Then "#{arg1}" should see the text "Registration successful"
+Given "#{who}" is on the index page
+When "#{who}" enters a random username into "register_username"
+And "#{who}" enters a random password into "register_password"
+When "#{who}" clicks "Register"
+Then "#{who}" should see the text "Registration successful"
 }
-  else
-    @browser = @fw_browser[arg1]
   end
+end
+
+When /^\"?(I|[^\"]*)\"? enters \"?(I|[^\"]*)\"?\'?s? JID into \"([^\"]*)\"$/ do |who0, who1, where|
+  puts who1
+  puts "Entering #{@jid[who1]}"
+  get_browser(who0).text_field(:id, where).value = @jid[who1]
 end
