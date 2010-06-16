@@ -113,7 +113,7 @@ var OneSocialWeb = function(options) {
 	 elems = msg.getElementsByTagName('body');
 	
 	 if (type == "chat" && elems.length > 0) {
-	     options.callbacks.message(to, from, type, Strophe.getText(elems[0])); 
+	     options.callback.message(to, from, type, Strophe.getText(elems[0])); 
 	 }
 	 return true;
      };
