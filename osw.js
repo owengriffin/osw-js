@@ -305,7 +305,7 @@ var OneSocialWeb = function(options) {
 	}).tree(), callbacks.subscription);
     };
 
-    subscribe = function(jid) {
+    subscribe = function(jid, callback) {
 	logger.info('Subscribing to ' + jid);
 	connection.sendIQ($iq({
 	    'from': connection.jid, 
@@ -317,10 +317,17 @@ var OneSocialWeb = function(options) {
 	    'xmlns': OneSocialWeb.SCHEMA.PUBSUB,
 	    'node': OneSocialWeb.XMLNS.MICROBLOG,
 	    'jid' : Strophe.getBareJidFromJid(connection.jid)
-	}).tree());
+	}).tree(), function(stanza) {
+	    logger.info("Subscribe request complete");
+	    logger.debug(stanza);
+	    callback();
+	}, function(stanza) {
+	    logger.info("Subscribe request unsuccssful");
+	    logger.debug(stanza);
+	});
     };
 
-    unsubscribe = function(jid) {
+    unsubscribe = function(jid, callback) {
 	logger.info('unsubscribing to ' + jid);
 	connection.sendIQ($iq({
 	    'from': connection.jid, 
@@ -332,7 +339,14 @@ var OneSocialWeb = function(options) {
 	    'xmlns': OneSocialWeb.SCHEMA.PUBSUB,
 	    'node': OneSocialWeb.XMLNS.MICROBLOG,
 	    'jid' : Strophe.getBareJidFromJid(connection.jid)
-	}).tree());
+	}).tree(), function(stanza) {
+	    logger.info("Unsubscribe request complete");
+	    logger.debug(stanza);
+	    callback();
+	}, function(stanza) {
+	    logger.info("Unsubscribe request unsuccssful");
+	    logger.debug(stanza);
+	});
     };
 
     add_contact = function(jid) {

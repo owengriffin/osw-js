@@ -53,9 +53,15 @@ var ExampleOSWClient = function() {
 			subscription_element.bind('click', function() {
 			    var status = $(this).html();
 			    if (status === '[subscribe]') {
-				client.subscribe(contact.jid);
+				client.subscribe(contact.jid, function() {
+				    contact.subscription = 'unsubscribe';
+				    subscription_element.text('[unsubscribe]');
+				});
 			    } else if (status === '[unsubscribe]') {
-				client.unsubscribe(contact.jid);
+				client.unsubscribe(contact.jid, function() {
+				    contact.subscription = 'subscribe';
+				    subscription_element.text('[subscribe]');
+				});
 			    }
 			});
 			element.append(subscription_element);
