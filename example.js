@@ -28,31 +28,41 @@ var ExampleOSWClient = function() {
 	if (contacts.length > 0) {
 	    for (index = 0; index < contacts.length; index ++) {
 		contact = contacts[index];
-		console.debug(contact);
 		if (typeof(contact.element_id) === 'undefined' || contact.element_id === "") {
 		    contact.element_id =  Strophe.getNodeFromJid(contact.jid) + '_' +  Strophe.getDomainFromJid(contact.jid);
-		    $('#contactlist').append('<li id="' + contact.element_id + '" class="' + contact.status + '"><span class="nickname"></span><span class="subscription"></span></li>');
+		    $('#contactlist').append('<li id="' + contact.element_id + '" class="' + contact.status + '"><span class="nickname">' + contact.jid + '</span></li>');
 		} else {
 		    element = $('#' + contact.element_id);
 		    element.removeClass();
 		    element.addClass(contact.status);
-		    console.info('status = ' + contact.status);
 		    if (typeof(contact.nickname) === 'undefined' ||
 			contact.nickname === '') {
 			element.children('.nickname').text(contact.jid);
 		    } else {
 			element.children('.nickname').text(contact.nickname);
 		    }
-		    (function() {
-			var subscription_element = element.children('.subscription');
-			if (typeof(contact.subscription) === 'undefined' ||
-			    contact.subscription === '') {
-			    subscription_element.text('[subscribe]');
-			} else {
-			    subscription_element.text(contact.subscription);
-			}
-		    })();
+		    
 		}   
+		element = $('#' + contact.element_id);
+		(function() {
+		    var subscription_element = element.children('.subscription');
+		    if (subscription_element === null || subscription_element.length === 0) {
+			subscription_element = $(document.createElement('span'));
+			subscription_element.addClass('subscription');
+			subscription_element.text('[unknown]');
+			subscription_element.bind('click', function() {
+			    var status = $(this).html();
+			    if (status === '[subscribe]') {
+				client.subscribe(contact.jid);
+			    } else if (status === '[unsubscribe]') {
+				client.unsubscribe(contact.jid);
+			    }
+			});
+			element.append(subscription_element);
+		    } else {
+			$(subscription_element[0]).html('[' + (contact.subscription == 'subscribed' ? 'unsubscribe' : 'subscribe') + ']');
+		    }
+		})();
 	    }
 	}
     };
@@ -78,6 +88,7 @@ var ExampleOSWClient = function() {
 		build_contact_list();
 	    },
 	    subscription: function(jid, type) {
+		console.info("Receieved subscription " + jid + " " + type);
 		get_contact(jid).subscription = type;
 		build_contact_list();
 	    },
@@ -102,6 +113,9 @@ var ExampleOSWClient = function() {
 	}
     });
 
+    $(document).unload(function() {
+	client.disconnect();
+    });
 $(document).ready(function () {
     $('#register').bind('click', function() {
      	var username, password, email_address;

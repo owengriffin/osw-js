@@ -1,5 +1,5 @@
 var OneSocialWeb = function(options) {
-    var that, logger, connection, callbacks, register, authenticate, contacts, activities, status, subscriptions, add_contact, confirm_contact;
+    var that, logger, connection, callbacks, register, authenticate, contacts, activities, status, subscriptions, add_contact, confirm_contact, subscribe, unsubscribe;
 
     logger = {
 	debug: function(msg) {
@@ -285,8 +285,10 @@ var OneSocialWeb = function(options) {
     };
 
     callbacks.subscription = function(stanza) {
+	logger.debug(stanza);
 	$(stanza).find("subscription").each(function() {
 	    var subscription = $(this);
+
 	    options.callback.subscription(subscription.attr('jid'), subscription.attr('subscription'));
 	});
     };
@@ -301,6 +303,36 @@ var OneSocialWeb = function(options) {
 	    'xmlns': OneSocialWeb.SCHEMA.PUBSUB,
 	    'node': OneSocialWeb.XMLNS.MICROBLOG
 	}).tree(), callbacks.subscription);
+    };
+
+    subscribe = function(jid) {
+	logger.info('Subscribing to ' + jid);
+	connection.sendIQ($iq({
+	    'from': connection.jid, 
+	    'type': 'set',
+	    'to': jid
+	}).c('pubsub', { 
+	    'xmlns': OneSocialWeb.SCHEMA.PUBSUB
+	}).c('subscribe', { 
+	    'xmlns': OneSocialWeb.SCHEMA.PUBSUB,
+	    'node': OneSocialWeb.XMLNS.MICROBLOG,
+	    'jid' : Strophe.getBareJidFromJid(connection.jid)
+	}).tree());
+    };
+
+    unsubscribe = function(jid) {
+	logger.info('unsubscribing to ' + jid);
+	connection.sendIQ($iq({
+	    'from': connection.jid, 
+	    'type': 'set',
+	    'to': jid
+	}).c('pubsub', { 
+	    'xmlns': OneSocialWeb.SCHEMA.PUBSUB
+	}).c('unsubscribe', { 
+	    'xmlns': OneSocialWeb.SCHEMA.PUBSUB,
+	    'node': OneSocialWeb.XMLNS.MICROBLOG,
+	    'jid' : Strophe.getBareJidFromJid(connection.jid)
+	}).tree());
     };
 
     add_contact = function(jid) {
@@ -346,7 +378,8 @@ var OneSocialWeb = function(options) {
     that.subscriptions = subscriptions;
     that.add_contact = add_contact;
     that.confirm_contact = confirm_contact;
-
+    that.subscribe = subscribe;
+    that.unsubscribe = unsubscribe;
     return that;
 };
 OneSocialWeb.SCHEMA = {
