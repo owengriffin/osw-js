@@ -40,6 +40,9 @@ var client = OneSocialWeb(
 		    client.confirm_contact(jid);
 		    $('#status').html('');
 		});
+	    },
+	    message: function(to, from, type, text) {
+		$('#messages').prepend('<p>@' + from + ': ' + text + '</p>');
 	    }
 	}
     });
