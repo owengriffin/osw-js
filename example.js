@@ -1,34 +1,85 @@
-function jid2id(jid) {
-    var match = jid.match(/(.*)@.*/);
-    if (match) {
-	return match[1];
-    }
-    return '';
-}
+var ExampleOSWClient = function() {
+    var that, client, contacts;
+    // Private methods
+    var build_contact_list, get_contact;
 
-var DOMAIN = "vagrant-ubuntu-lucid";
-var client = OneSocialWeb(
-    {
+    // A list of {jid: '', element_id: '', status: ''}
+    contacts = [];
+
+    get_contact = function(jid) {
+	var index, node, contact;
+
+	jid = Strophe.getNodeFromJid(jid) + '@' + Strophe.getDomainFromJid(jid) ;
+
+	if (contacts.length > 0) {
+	    for (index = 0; index < contacts.length; index ++) {
+		if (contacts[index].jid === jid) {
+		    return contacts[index];
+		}
+	    }
+	}
+	contact = {'jid': jid};
+	contacts.push(contact);
+	return contact;
+    };
+
+    build_contact_list = function() {
+	var index, contact, element;
+	if (contacts.length > 0) {
+	    for (index = 0; index < contacts.length; index ++) {
+		contact = contacts[index];
+		console.debug(contact);
+		if (typeof(contact.element_id) === 'undefined' || contact.element_id === "") {
+		    contact.element_id =  Strophe.getNodeFromJid(contact.jid) + '_' +  Strophe.getDomainFromJid(contact.jid);
+		    $('#contactlist').append('<li id="' + contact.element_id + '" class="' + contact.status + '"><span class="nickname"></span><span class="subscription"></span></li>');
+		} else {
+		    element = $('#' + contact.element_id);
+		    element.removeClass();
+		    element.addClass(contact.status);
+		    console.info('status = ' + contact.status);
+		    if (typeof(contact.nickname) === 'undefined' ||
+			contact.nickname === '') {
+			element.children('.nickname').text(contact.jid);
+		    } else {
+			element.children('.nickname').text(contact.nickname);
+		    }
+		    (function() {
+			var subscription_element = element.children('.subscription');
+			if (typeof(contact.subscription) === 'undefined' ||
+			    contact.subscription === '') {
+			    subscription_element.text('[subscribe]');
+			} else {
+			    subscription_element.text(contact.subscription);
+			}
+		    })();
+		}   
+	    }
+	}
+    };
+
+    client = OneSocialWeb({
 	bosh_url: '/bosh', 
 	callback: { 
 	    connected: function() {
      		$('#unauthenticated').hide();
 		$('#authenticated').show();
+		client.contacts();
 	    },
 	    contact: function(id, name) {
-		$('#contactlist').append('<li id="' + jid2id(id) + '" class="unavailable"><em>' + id + '</em><br/>' + name + '<span class="subscription">?</span></li>'); 
+		console.info('Received contact: ' + id + ' ' + name);
+		get_contact(id);
+		build_contact_list();
 	    },
 	    activity: function(jid, activity) {
 		$('#activitylist').append('<li><em>' + jid + '</em><br/>' + activity + '</li>');
 	    },
 	    presence: function(jid, show) {
-		$('#' + jid2id(jid)).removeClass().addClass(show);
+		get_contact(jid).status = show;
+		build_contact_list();
 	    },
 	    subscription: function(jid, type) {
-		var element_jid = jid2id(jid);
-		if (element_jid) {
-		    $('#' + element_jid + ' span.subscription:first').html(type);
-		}
+		get_contact(jid).subscription = type;
+		build_contact_list();
 	    },
 	    presence_subscription_request: function(jid) {
 		var button = $(document.createElement('input'));
@@ -43,9 +94,14 @@ var client = OneSocialWeb(
 	    },
 	    message: function(to, from, type, text) {
 		$('#messages').prepend('<p>@' + from + ': ' + text + '</p>');
+	    },
+	    nickname: function(jid, nickname) {
+		get_contact(jid).nickname = nickname;
+		build_contact_list();
 	    }
 	}
     });
+
 $(document).ready(function () {
     $('#register').bind('click', function() {
      	var username, password, email_address;
@@ -83,3 +139,11 @@ $(document).ready(function () {
 	client.add_contact($('#add_contact_jid')[0].value);
     });
 });
+
+    return that;
+};
+
+
+var DOMAIN = "vagrant-ubuntu-lucid";
+ExampleOSWClient();
+

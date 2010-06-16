@@ -57,6 +57,9 @@ var OneSocialWeb = function(options) {
     options.callback.presence_subscription_request = options.callback.presence_subscription_request || function(jid) {
 	logger.info("User callback: Received presence subscription request from: " + jid);
     };
+    options.callback.nickname = options.callback.nickname || function(jid, nickname) {
+	logger.info('User callback: Nickname of ' + jid + ' is ' + nickname);
+    };
     
 
     // All private callbacks
@@ -104,7 +107,7 @@ var OneSocialWeb = function(options) {
      * Callback when there is a new message
      **/
      callbacks.message = function(msg) {
-	 var to, from, type, elems;
+	 var to, from, type, elems, event, index;
 	 logger.debug("Internal callback: Message");
 	 logger.debug(msg);
 	 to = msg.getAttribute('to');
@@ -114,6 +117,16 @@ var OneSocialWeb = function(options) {
 	
 	 if (type == "chat" && elems.length > 0) {
 	     options.callback.message(to, from, type, Strophe.getText(elems[0])); 
+	 }
+
+	 // Capture any nickname events
+	 event = $('event items item nick', msg);
+	 logger.debug(event);
+	 if (event.length > 0) {
+	     for (index = 0; index < event.length; index ++) {
+		 logger.debug(event[index].textContent);
+		 options.callback.nickname(from, event[index].textContent);
+	     }
 	 }
 	 return true;
      };
