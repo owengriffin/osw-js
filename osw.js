@@ -70,9 +70,10 @@ var OneSocialWeb = function(options) {
 
     // Function which deals with the connection callback
     callbacks.connection = function(status, error) {
-	for (name in Strophe.Status) {
-	    if (Strophe.Status[name] == status) {
-		options.callback.connection(name);
+	var st;
+	for (st in Strophe.Status) {
+	    if (Strophe.Status[st] === status) {
+		options.callback.connection(st);
 	    }
 	}
 	if (status === Strophe.Status.CONNECTED) {
@@ -86,7 +87,7 @@ var OneSocialWeb = function(options) {
     };
 
     callbacks.presence = function(msg) {
-	var message, type, from, x;
+	var message, type, from, x, show;
 	logger.debug('Internal callback: Presence');
 
 	message = $(msg);
@@ -117,8 +118,7 @@ var OneSocialWeb = function(options) {
 	    options.callback.presence(from, show);
 	    return true;
 	}
-	
-    },
+    };
 
     /**
      * Callback when there is a new message
@@ -132,7 +132,7 @@ var OneSocialWeb = function(options) {
 	 type = msg.getAttribute('type');
 	 elems = msg.getElementsByTagName('body');
 	
-	 if (type == "chat" && elems.length > 0) {
+	 if (type === "chat" && elems.length > 0) {
 	     options.callback.message(to, from, type, Strophe.getText(elems[0])); 
 	 }
 
@@ -475,7 +475,7 @@ OneSocialWeb.SCHEMA = {
     ATOM: 'http://www.w3.org/2005/Atom',
     ACTIVITY_STREAMS: "http://activitystrea.ms/spec/1.0/",
     ONESOCIALWEB: 'http://onesocialweb.org/spec/1.0/'
-}
+};
 OneSocialWeb.XMLNS = {
     CLIENT: 'jabber:client',
     ROSTER: 'jabber:iq:roster',
@@ -483,4 +483,4 @@ OneSocialWeb.XMLNS = {
     MICROBLOG: 'urn:xmpp:microblog:0',
     VCARDTEMP: 'vcard-temp',
     VCARDUPDATE: 'vcard-temp:x:update'
-}
+};
