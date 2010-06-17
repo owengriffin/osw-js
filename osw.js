@@ -247,11 +247,11 @@ var OneSocialWeb = function(options) {
 	}).c('pubsub', { 
 	    'xmlns': OneSocialWeb.SCHEMA.PUBSUB 
 	}).c('publish', { 
-	    'node': 'urn:xmpp:microblog:0' 
+	    'node': OneSocialWeb.XMLNS.MICROBLOG
 	}).c('item').c('entry', {
 	    'xmlns': OneSocialWeb.SCHEMA.ATOM,
 	    'xmlns:activity': OneSocialWeb.SCHEMA.ACTIVITY_STREAMS,
-	    'xmlns:osw': 'http://onesocialweb.org/spec/1.0/'
+	    'xmlns:osw': OneSocialWeb.SCHEMA.ONESOCIALWEB
 	}).c('published').up()
 	    .c('title').t(text).up()
 	    .c('activity:verb').t('http://activitystrea.ms/schema/1.0/post')
@@ -399,7 +399,8 @@ var OneSocialWeb = function(options) {
 OneSocialWeb.SCHEMA = {
     PUBSUB: 'http://jabber.org/protocol/pubsub',
     ATOM: 'http://www.w3.org/2005/Atom',
-    ACTIVITY_STREAMS: "http://activitystrea.ms/spec/1.0/"
+    ACTIVITY_STREAMS: "http://activitystrea.ms/spec/1.0/",
+    ONESOCIALWEB: 'http://onesocialweb.org/spec/1.0/'
 }
 OneSocialWeb.XMLNS = {
     ROSTER: 'jabber:iq:roster',
