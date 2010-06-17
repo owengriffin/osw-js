@@ -44,7 +44,7 @@ var OneSocialWeb = function(options) {
     options.callback.message = options.callback.message || function(to, from, type, body) {
 	logger.info("User callback: Message received");
     };
-    options.callback.contact = options.callback.contact || function(jid, name) {
+    options.callback.contact = options.callback.contact || function(jid, name, groups) {
 	logger.info("User callback: Contact received");
     };
     options.callback.activity = options.callback.activity || function(jid, text) {
@@ -218,9 +218,15 @@ var OneSocialWeb = function(options) {
     callbacks.roster = {};
     callbacks.roster.success = function(stanza) {
 	$(stanza).find("item").each(function() {
-	    var jid = $(this).attr('jid');
+	    var item, jid, groups;
+	    item = $(this);
+	    jid = item.attr('jid');
 	    probe_presence(jid);
-	    options.callback.contact(jid, $(this).attr('name'));
+	    // Generate a list of groups which this contact is a member of
+	    groups = jQuery.map(item.children('group'), function(element) { 
+		return $(element).text(); 
+	    });
+	    options.callback.contact(jid, item.attr('name'), groups);
 	    vcard(jid);
 	});
     };
