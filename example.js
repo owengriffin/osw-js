@@ -80,6 +80,8 @@ var ExampleOSWClient = function() {
      		$('#unauthenticated').hide();
 		$('#authenticated').show();
 		client.contacts();
+		client.inbox();
+		client.subscriptions();
 	    },
 	    contact: function(id, name) {
 		console.info('Received contact: ' + id + ' ' + name);
@@ -139,22 +141,12 @@ $(document).ready(function () {
     $('#authenticate').bind('click', function () {
      	client.authenticate($('#username')[0].value, DOMAIN, $('#password')[0].value);
     });
-     $('#listactivities').bind('click', function() {
-     	$('#activitylist').html('');
-     	client.activities(function(actor, activity) {
-     	    console.info('Activity : ' + actor + ' ' +  activity);
-     	    $('#activitylist').append('<li><em>' + actor + '</em><br/>' + activity + '</li>');
-     	});
-     });
      $('#updatestatus').bind('click', function() {
      	client.status($('#update_status')[0].value);
      });
     $('#listcontacts').bind('click', function() {
      	client.contacts();
      });
-    $('#listsubs').bind('click', function() {
-	client.subscriptions();
-    });
     $('#add_contact_button').bind('click', function() {
 	client.add_contact($('#add_contact_jid')[0].value);
     });

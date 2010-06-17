@@ -1,5 +1,5 @@
 var OneSocialWeb = function(options) {
-    var that, logger, connection, callbacks, register, authenticate, contacts, activities, status, subscriptions, add_contact, confirm_contact, follow, unfollow;
+    var that, logger, connection, callbacks, register, authenticate, contacts, inbox, status, subscriptions, add_contact, confirm_contact, follow, unfollow;
 
     logger = {
 	debug: function(msg) {
@@ -238,11 +238,11 @@ var OneSocialWeb = function(options) {
     };
 
     /**
-     * Function: OneSocialWeb.activities
+     * Function: OneSocialWeb.inbox
      * 
      * List the inbox of activities for the current user.
      **/
-    activities = function() {
+    inbox = function() {
 	var sub = $iq({
 	    'from' : connection.jid, 
 	    'type' : 'get'
@@ -423,7 +423,7 @@ var OneSocialWeb = function(options) {
     that.register = register;
     that.authenticate = authenticate;
     that.contacts = contacts;
-    that.activities = activities;
+    that.inbox = inbox;
     that.status = status;
     that.subscriptions = subscriptions;
     that.add_contact = add_contact;

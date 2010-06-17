@@ -2,10 +2,9 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-15">
-<title>Strophe Example</title>
+<title>osw-js</title>
 <script type='text/javascript' src='http://ajax.googleapis.com/ajax/libs/jquery/1.2.6/jquery.min.js'></script>
 <script type='text/javascript' src='strophe.js'></script>
-<!--<script type='text/javascript' src='strophe.pubsub.js'></script>-->
 <script type='text/javascript' src='osw.js'></script>
 <script type='text/javascript' src='example.js'></script>
 <style type="text/css">
@@ -33,11 +32,15 @@ display: none;
 </head>
 
 <body>
-<h1>Strophe Example</h1>
+<h1>osw-js: Communicating with OneSocialWeb in Javascript using Strophe.js</h1>
+<p>This web application is a test implementation of the protocols and standards defined in OneSocialWeb</p>
 
 <div id="status"></div>
+
+<!-- Display any error messages from the server -->
 <div id="error" style="display: none"></div>
 
+<!-- Everything within the #unauthenticated container will only appear when the user has not signed in -->
 <div id="unauthenticated">
 <div id="registration">
   <h2>Registration</h2>
@@ -50,7 +53,6 @@ display: none;
   <input type="button" value="Register" id="register"/>
   </form>
 </div>
-
 <div id="authentication">
   <h2>Authentication</h2>
   <form>
@@ -61,12 +63,9 @@ display: none;
   </form>
 </div>
 </div>
+<!-- Everything within #authenticated will only appear when the user has signed in -->
 <div id="authenticated">
-
-  <div id="messages">
-
-    </div>
-  
+<div id="messages"></div>
 <div id="activities">
   <h2>Activities</h2>
   <form>
@@ -83,15 +82,8 @@ display: none;
   <ul id="contactlist"></ul>
   <form id="add_contact"><input type="text" id="add_contact_jid"><input type="button" value="Add" id="add_contact_button"></form>
 </div>
-
-<div id="subscriptions">
-  <h2>Subscriptions</h2>
-  <input type="button" value="List" id="listsubs"/>
 </div>
-</div>
-
-
 <hr>
 <address></address>
-<!-- hhmts start -->Last modified: Thu Jun 17 16:36:47 BST 2010 <!-- hhmts end -->
+<!-- hhmts start -->Last modified: Thu Jun 17 16:54:53 BST 2010 <!-- hhmts end -->
 </body> </html>
