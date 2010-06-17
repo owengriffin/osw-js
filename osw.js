@@ -1,5 +1,5 @@
 var OneSocialWeb = function(options) {
-    var that, logger, connection, callbacks, register, authenticate, contacts, activities, status, subscriptions, add_contact, confirm_contact, subscribe, unsubscribe;
+    var that, logger, connection, callbacks, register, authenticate, contacts, activities, status, subscriptions, add_contact, confirm_contact, subscribe, unsubscribe, vcard;
 
     logger = {
 	debug: function(msg) {
@@ -60,6 +60,9 @@ var OneSocialWeb = function(options) {
     options.callback.nickname = options.callback.nickname || function(jid, nickname) {
 	logger.info('User callback: Nickname of ' + jid + ' is ' + nickname);
     };
+    options.callback.avatar = options.callback.avatar || function(jid, data) {
+	logger.info("User callback: Photo of " + jid);
+    };
     
 
     // All private callbacks
@@ -83,18 +86,32 @@ var OneSocialWeb = function(options) {
     };
 
     callbacks.presence = function(msg) {
-	var message, type, from;
+	var message, type, from, x;
+	logger.debug('Internal callback: Presence');
+
 	message = $(msg);
 	type = message.attr('type');
 	from = message.attr('from');
-
-	logger.debug('Internal callback: Presence');
-	logger.debug('Type: ' + type + ', From: ' + from);
 
 	if (type === 'subscribe') {
 	    // Received a subscription request
 	    options.callback.presence_subscription_request(from);
 	}
+	x = message.children('x');
+	if (x.length > 0) {
+	    x = $(x[0]); 
+	    if (x.attr('xmlns') === OneSocialWeb.XMLNS.VCARDUPDATE) {
+		if (x.children('photo')) {
+		    // TODO: The <photo> element contains a SHA-1 hash of the image. We need
+		    // to compare the hash with the current one stored for the user. If it has
+		    // changed then we request the avatar from the user.
+		    // Request a new VCARD from the user
+		    vcard(Strophe.getBareJidFromJid(from));
+		    return true;
+		}
+	    }
+	}
+	    
 	if (from) {
 	    show = $(msg).find('show').text();
 	    options.callback.presence(from, show);
@@ -131,19 +148,12 @@ var OneSocialWeb = function(options) {
 	 return true;
      };
 
-    callbacks.iq = function(msg) {
-	logger.info('IQ callback');
-	logger.debug(msg);
-	return true;
-    };
-
     // Callback for when a successfull connection
     callbacks.connected = function() {
 	logger.debug("Connected.");
 	// Bind message and prescence handlers
 	connection.addHandler(callbacks.message, null, 'message', null, null,  null); 
 	connection.addHandler(callbacks.presence, null, 'presence', null, null, null); 
-	connection.addHandler(callbacks.iq, null, 'iq', null, null, null); 
 	// Update the prescence
 	connection.send($pres().tree());
 	options.callback.connected();
@@ -203,6 +213,7 @@ var OneSocialWeb = function(options) {
 	    var jid = $(this).attr('jid');
 	    probe_presence(jid);
 	    options.callback.contact(jid, $(this).attr('name'));
+	    vcard(jid);
 	});
     };
     callbacks.roster.failure = function(stanza) {
@@ -383,6 +394,32 @@ var OneSocialWeb = function(options) {
 	}));	    
     };
 
+    /**
+     * Function: OneSocialWeb.vcard
+     *
+     * Request a VCARD of a specified user.
+     *
+     * Parameters:
+     * 
+     * jid - The Jabber Identifier of the user you wish to request the VCARD
+     **/
+    vcard = function(jid) {
+	connection.sendIQ($iq({
+	    'type': 'get',
+	    'to': jid,
+	    'xmlns': OneSocialWeb.XMLNS.CLIENT
+	}).c('vCard', {
+	    'xmlns': OneSocialWeb.XMLNS.VCARDTEMP
+	}), function(stanza) {
+	    var photo;
+	    photo = $(stanza).find('PHOTO BINVAL');
+	    if (photo.length > 0) {
+		photo = $(photo[0]).text();
+		options.callback.avatar(jid, photo);
+	    }
+	});
+    };
+
     that = {};
     that.register = register;
     that.authenticate = authenticate;
@@ -394,6 +431,7 @@ var OneSocialWeb = function(options) {
     that.confirm_contact = confirm_contact;
     that.subscribe = subscribe;
     that.unsubscribe = unsubscribe;
+    that.vcard = vcard;
     return that;
 };
 OneSocialWeb.SCHEMA = {
@@ -403,7 +441,10 @@ OneSocialWeb.SCHEMA = {
     ONESOCIALWEB: 'http://onesocialweb.org/spec/1.0/'
 }
 OneSocialWeb.XMLNS = {
+    CLIENT: 'jabber:client',
     ROSTER: 'jabber:iq:roster',
     REGISTER: 'jabber:iq:register',
-    MICROBLOG: 'urn:xmpp:microblog:0'
+    MICROBLOG: 'urn:xmpp:microblog:0',
+    VCARDTEMP: 'vcard-temp',
+    VCARDUPDATE: 'vcard-temp:x:update'
 }
