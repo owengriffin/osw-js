@@ -24,13 +24,33 @@ var ExampleOSWClient = function() {
     };
 
     build_contact_list = function() {
-	var index, contact, element;
+	var index, contact, element, group;
+	var get_group_element = function(group_name) {
+	    var group_id, group_element;
+	    group_id = 'grp_' + group_name.toLowerCase().replace(/ /, '');
+	    group_element = $('#' + group_id);
+	    if (group_element === null || group_element.length === 0) {
+		group_element = $(document.createElement('ul'));
+		group_element.attr('id', group_id);
+		group_element.append('<li class="name">' + group_name + '</li>');
+		$('#contactlist').append(group_element);
+	    }
+	    return group_element;
+	};
 	if (contacts.length > 0) {
 	    for (index = 0; index < contacts.length; index ++) {
 		contact = contacts[index];
+
+		// Create a list for the group, if it does not exist
+		group = 'Others';
+		if (typeof(contact.groups) !== 'undefined' && contact.groups.length !== 0) {
+		    group = contact.groups[0];
+		}
+		group_element = get_group_element(group);
+		
 		if (typeof(contact.element_id) === 'undefined' || contact.element_id === "") {
 		    contact.element_id =  Strophe.getNodeFromJid(contact.jid) + '_' +  Strophe.getDomainFromJid(contact.jid);
-		    $('#contactlist').append('<li id="' + contact.element_id + '" class="' + contact.status + '"><span class="nickname">' + contact.jid + '</span></li>');
+		    group_element.append('<li id="' + contact.element_id + '" class="' + contact.status + '"><span class="nickname">' + contact.jid + '</span></li>');
 		} else {
 		    element = $('#' + contact.element_id);
 		    element.removeClass();
@@ -41,7 +61,12 @@ var ExampleOSWClient = function() {
 		    } else {
 			element.children('.nickname').text(contact.nickname);
 		    }
-		    
+		    // Check that the group of the contact hasn't changed
+		    if (element.parent() !== group_element) {
+			console.debug(element);
+			element.remove();
+			group_element.append(element);
+		    } 
 		}   
 		element = $('#' + contact.element_id);
 		(function() {
@@ -81,9 +106,12 @@ var ExampleOSWClient = function() {
 		$('#authenticated').show();
 		client.contacts();
 	    },
-	    contact: function(id, name) {
+	    contact: function(id, name, groups) {
+		var contact;
 		console.info('Received contact: ' + id + ' ' + name);
-		get_contact(id);
+		contact = get_contact(id);
+		contact.name = name;
+		contact.groups = groups;
 		build_contact_list();
 	    },
 	    activity: function(jid, activity) {
