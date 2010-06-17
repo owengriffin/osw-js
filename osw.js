@@ -181,7 +181,15 @@ var OneSocialWeb = function(options) {
     };
 
     /** 
-     * Authenticate to a OneSocialWeb server with the given credentials
+     * Function: OneSocialWeb.authenticate
+     * 
+     * Authenticates with a OneSocialWeb server using the specified credentials.
+     * 
+     * Parameters:
+     * 
+     * username - XMPP username
+     * domain - Domain of the XMPP server
+     * password - Plain text password of the XMPP username
      **/
     authenticate = function(username, domain, password) {
 	logger.debug('Connecting with username ' + username);
@@ -210,9 +218,12 @@ var OneSocialWeb = function(options) {
     };	
 
     /**
-     * Fetch a list of contacts from the server
+     * Function: OneSocialWeb.contacts
+     * 
+     * Requests a list of the current user's contacts from the server. This will call the 
+     * options.callback.contact function when each contact is received from the server.
      */
-    contacts = function(contact_callback) {
+    contacts = function() {
 	var iq = $iq({
 	    'from': connection.jid,
 	    'type': 'get'
@@ -225,6 +236,12 @@ var OneSocialWeb = function(options) {
 	    options.callback.activity($(this).find("actor uri").text(), $(this).find("title").text());
 	});
     };
+
+    /**
+     * Function: OneSocialWeb.activities
+     * 
+     * List the inbox of activities for the current user.
+     **/
     activities = function() {
 	var sub = $iq({
 	    'from' : connection.jid, 
