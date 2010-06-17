@@ -30,7 +30,7 @@ var ExampleOSWClient = function() {
 		contact = contacts[index];
 		if (typeof(contact.element_id) === 'undefined' || contact.element_id === "") {
 		    contact.element_id =  Strophe.getNodeFromJid(contact.jid) + '_' +  Strophe.getDomainFromJid(contact.jid);
-		    $('#contactlist').append('<li id="' + contact.element_id + '" class="' + contact.status + '"><span class="nickname">' + contact.jid + '</span></li>');
+		    $('#contactlist').append('<li id="' + contact.element_id + '" class="' + contact.status + '"><img src="" class="avatar"/><span class="nickname">' + contact.jid + '</span></li>');
 		} else {
 		    element = $('#' + contact.element_id);
 		    element.removeClass();
@@ -41,7 +41,11 @@ var ExampleOSWClient = function() {
 		    } else {
 			element.children('.nickname').text(contact.nickname);
 		    }
-		    
+		    if (typeof(contact.avatar) === 'undefined' ||
+			contact.avatar === '') {
+		    } else {
+			element.children('.avatar').attr('src', 'data:image/png;base64,' + contact.avatar);
+		    }
 		}   
 		element = $('#' + contact.element_id);
 		(function() {
@@ -116,6 +120,10 @@ var ExampleOSWClient = function() {
 	    },
 	    nickname: function(jid, nickname) {
 		get_contact(jid).nickname = nickname;
+		build_contact_list();
+	    },
+	    avatar: function(jid, data) {
+		get_contact(jid).avatar = data;
 		build_contact_list();
 	    }
 	}
