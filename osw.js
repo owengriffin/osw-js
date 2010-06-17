@@ -1,5 +1,5 @@
 var OneSocialWeb = function(options) {
-    var that, logger, connection, callbacks, register, authenticate, contacts, activities, status, subscriptions, add_contact, confirm_contact, subscribe, unsubscribe;
+    var that, logger, connection, callbacks, register, authenticate, contacts, activities, status, subscriptions, add_contact, confirm_contact, follow, unfollow;
 
     logger = {
 	debug: function(msg) {
@@ -312,8 +312,7 @@ var OneSocialWeb = function(options) {
     subscriptions = function() {
 	connection.sendIQ($iq({
 	    'from': connection.jid, 
-	    'type': 'get'/*,
-	    'to': 'pubsub.' + connection.domain*/
+	    'type': 'get'
 	}).c('pubsub', { 
 	    'xmlns': OneSocialWeb.SCHEMA.PUBSUB
 	}).c('subscriptions', { 
@@ -322,8 +321,18 @@ var OneSocialWeb = function(options) {
 	}).tree(), callbacks.subscription);
     };
 
-    subscribe = function(jid, callback) {
-	logger.info('Subscribing to ' + jid);
+    /**
+     * Function: OneSocialWeb.follow
+     *
+     * Subscribes the current user to the activity stream of the specified user.
+     *
+     * Parameters:
+     *
+     * jid - The Jabber identifier of the user to 'follow'
+     * callback - A function which is called when the 'follow' request is successful
+     **/
+    follow = function(jid, callback) {
+	logger.info('Requesting to follow: ' + jid);
 	connection.sendIQ($iq({
 	    'from': connection.jid, 
 	    'type': 'set',
@@ -344,8 +353,18 @@ var OneSocialWeb = function(options) {
 	});
     };
 
-    unsubscribe = function(jid, callback) {
-	logger.info('unsubscribing to ' + jid);
+    /**
+     * Function: OneSocialWeb.unfollow
+     *
+     * Unsubscribes the current user to the activity stream of the specified user.
+     *
+     * Parameters:
+     *
+     * jid - The Jabber identifier of the user to 'follow'
+     * callback - A function which is called when the 'unfollow' request is successful
+     **/
+    unfollow = function(jid, callback) {
+	logger.info('Requesting to unfollow: ' + jid);
 	connection.sendIQ($iq({
 	    'from': connection.jid, 
 	    'type': 'set',
@@ -409,8 +428,8 @@ var OneSocialWeb = function(options) {
     that.subscriptions = subscriptions;
     that.add_contact = add_contact;
     that.confirm_contact = confirm_contact;
-    that.subscribe = subscribe;
-    that.unsubscribe = unsubscribe;
+    that.follow = follow;
+    that.unfollow = unfollow;
     return that;
 };
 OneSocialWeb.SCHEMA = {

@@ -52,21 +52,21 @@ var ExampleOSWClient = function() {
 			subscription_element.text('[unknown]');
 			subscription_element.bind('click', function() {
 			    var status = $(this).html();
-			    if (status === '[subscribe]') {
-				client.subscribe(contact.jid, function() {
+			    if (status === '[follow]') {
+				client.follow(contact.jid, function() {
 				    contact.subscription = 'unsubscribe';
-				    subscription_element.text('[unsubscribe]');
+				    subscription_element.text('[unfollow]');
 				});
-			    } else if (status === '[unsubscribe]') {
-				client.unsubscribe(contact.jid, function() {
+			    } else if (status === '[unfollow]') {
+				client.unfollow(contact.jid, function() {
 				    contact.subscription = 'subscribe';
-				    subscription_element.text('[subscribe]');
+				    subscription_element.text('[follow]');
 				});
 			    }
 			});
 			element.append(subscription_element);
 		    } else {
-			$(subscription_element[0]).html('[' + (contact.subscription == 'subscribed' ? 'unsubscribe' : 'subscribe') + ']');
+			$(subscription_element[0]).html('[' + (contact.subscription == 'subscribed' ? 'unfollow' : 'follow') + ']');
 		    }
 		})();
 	    }
@@ -147,7 +147,7 @@ $(document).ready(function () {
      	});
      });
      $('#updatestatus').bind('click', function() {
-     	client.status($('#status')[0].value);
+     	client.status($('#update_status')[0].value);
      });
     $('#listcontacts').bind('click', function() {
      	client.contacts();
