@@ -1,6 +1,16 @@
+/**
+ * Class: OneSocialWeb
+ * 
+ * Methods for interacting with a OneSocialWeb server using Strophe.js.
+ *
+ * Parameters:
+ *
+ * options - an object containing options for connecting to a OneSocialWeb server
+ **/
 var OneSocialWeb = function(options) {
     var that, logger, connection, callbacks, register, authenticate, contacts, inbox, status, subscriptions, add_contact, confirm_contact, follow, unfollow, vcard;
 
+    // A logger which uses the Firebug 'console'
     logger = {
 	debug: function(msg) {
 	    if (typeof(console) !== 'undefined') {
@@ -27,17 +37,54 @@ var OneSocialWeb = function(options) {
 	connection.rawOutput = function(msg) { logger.debug('OUT ' + msg); };
     })();
 
-    // Setup the user-defined callbacks
+    /**
+     * Property: options.callback
+     *
+     * A map of user-defined callbacks
+     **/
     options.callback = options.callback || {};
+
+    /**
+     * Property: options.callback.connection
+     *
+     * Invoked every time the connection status is updated
+     *
+     * Parameters: 
+     * 
+     * status - The current Strophe.Status
+     **/
     options.callback.connection = options.callback.connection || function(status, error) {
 	logger.info(status);
     };
+
+    /**
+     * Property: options.callback.connection
+     *
+     * Invoked when a connection has been established
+     **/
     options.callback.connected = options.callback.connected || function() {
 	logger.info('Connected!');
     };
+
+    /**
+     * Property: options.callback.connection_failed
+     *
+     * Invoked when the connection has failed
+     **/
     options.callback.connection_failed = options.callback.connection_failed || function() {
 	logger.error('Unable to establish connection.');
     };
+
+    /**
+     * Property: options.callback.presence
+     *
+     * Invoked when a presence message is received
+     *
+     * Parameters:
+     * 
+     * from - The Jabber identifier of the user whose presence has been updated
+     * show - A description of their current presence
+     **/
     options.callback.presence = options.callback.presence || function(from, show) {
 	logger.info("User callback: Presence received");
     };
@@ -60,10 +107,20 @@ var OneSocialWeb = function(options) {
     options.callback.nickname = options.callback.nickname || function(jid, nickname) {
 	logger.info('User callback: Nickname of ' + jid + ' is ' + nickname);
     };
+
+    /**
+     * Property: options.callback.avatar
+     *
+     * Invoked when a user's avatar has been changed
+     *
+     * Parameters:
+     * 
+     * jid - The Jabber identifier of the user whose avatar has been updated
+     * data - PNG image data of the new avatar
+     **/
     options.callback.avatar = options.callback.avatar || function(jid, data) {
 	logger.info("User callback: Photo of " + jid);
     };
-    
 
     // All private callbacks
     callbacks = {};
@@ -137,14 +194,19 @@ var OneSocialWeb = function(options) {
 	 }
 
 	 // Capture any nickname events
-	 event = $('event items item nick', msg);
-	 logger.debug(event);
+	 event = $('event items item nick', msg);	 
 	 if (event.length > 0) {
 	     for (index = 0; index < event.length; index ++) {
-		 logger.debug(event[index].textContent);
 		 options.callback.nickname(from, event[index].textContent);
 	     }
 	 }
+
+	 // Capture any avatar change events
+	 event = $('event items item data', msg);
+	 if (event.length > 0) {
+	     options.callback.avatar(jid, event[0].textContent);
+	 }
+
 	 return true;
      };
 
@@ -191,7 +253,7 @@ var OneSocialWeb = function(options) {
     };
 
     /** 
-     * Function: OneSocialWeb.authenticate
+     * Function: authenticate
      * 
      * Authenticates with a OneSocialWeb server using the specified credentials.
      * 
@@ -235,7 +297,7 @@ var OneSocialWeb = function(options) {
     };	
 
     /**
-     * Function: OneSocialWeb.contacts
+     * Function: contacts
      * 
      * Requests a list of the current user's contacts from the server. This will call the 
      * options.callback.contact function when each contact is received from the server.
@@ -255,7 +317,7 @@ var OneSocialWeb = function(options) {
     };
 
     /**
-     * Function: OneSocialWeb.inbox
+     * Function: inbox
      * 
      * List the inbox of activities for the current user.
      **/
@@ -274,6 +336,15 @@ var OneSocialWeb = function(options) {
 	});
     };
 
+    /**
+     * Function: status
+     *
+     * Update the status of the current user
+     *
+     * Parameters:
+     *
+     * text - The status update
+     **/
     status = function(text) {
 	var sub = $iq({
 	    'from': connection.jid, 
@@ -339,7 +410,7 @@ var OneSocialWeb = function(options) {
     };
 
     /**
-     * Function: OneSocialWeb.follow
+     * Function: follow
      *
      * Subscribes the current user to the activity stream of the specified user.
      *
@@ -371,7 +442,7 @@ var OneSocialWeb = function(options) {
     };
 
     /**
-     * Function: OneSocialWeb.unfollow
+     * Function: unfollow
      *
      * Unsubscribes the current user to the activity stream of the specified user.
      *
@@ -402,6 +473,15 @@ var OneSocialWeb = function(options) {
 	});
     };
 
+    /**
+     * Function: add_contact
+     *
+     * Adds a new contact to the rooster
+     *
+     * Parameters:
+     * 
+     * jid - The Jabber identifier of the user to add
+     **/
     add_contact = function(jid) {
 	logger.info('Adding contact ' + jid);
 	// IQ message which adds the contact to the roster
@@ -420,6 +500,15 @@ var OneSocialWeb = function(options) {
 	}));	    
     };
 
+    /**
+     * Function: confirm_contact
+     *
+     * Confirm the addition of a contact 
+     *
+     * Parameters:
+     *
+     * jid - The Jabber identifier of the user requesting to be a contact
+     **/
     confirm_contact = function(jid) {
 	connection.sendIQ($iq({
 	    'type': 'set'
@@ -437,7 +526,7 @@ var OneSocialWeb = function(options) {
     };
 
     /**
-     * Function: OneSocialWeb.vcard
+     * Function: vcard
      *
      * Request a VCARD of a specified user.
      *
