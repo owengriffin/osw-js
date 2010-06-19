@@ -7,7 +7,7 @@ When /^\"?(I|[^\"]*)\"? enters? (?:a|the) (same|random|valid|text) (.*) into "([
       @username = random_string
     end
     value = @username
-    @jid[who] = value
+    @jid[who] = value + '@vagrant-ubuntu-lucid'
   elsif desc == "password"
     if type == "random"
       @password = random_string

@@ -1,3 +1,5 @@
+/*jslint nomen: true, debug: true, evil: false, onevar: true, white: false*/
+var $, $iq, $pres, jQuery, Strophe, console;
 /**
  * Class: OneSocialWeb
  * 
@@ -8,7 +10,7 @@
  * options - an object containing options for connecting to a OneSocialWeb server
  **/
 var OneSocialWeb = function(options) {
-    var that, logger, connection, callbacks, register, authenticate, contacts, inbox, status, subscriptions, add_contact, confirm_contact, follow, unfollow, vcard;
+    var that, logger, connection, callbacks, register, authenticate, contacts, inbox, status, subscriptions, add_contact, confirm_contact, follow, unfollow, vcard, update_contact, edit_profile, probe_presence;
 
     // A logger which uses the Firebug 'console'
     logger = {
@@ -35,7 +37,7 @@ var OneSocialWeb = function(options) {
 	connection = new Strophe.Connection(options.bosh_url);
 	connection.rawInput = function(msg) { logger.debug('IN ' + msg); };
 	connection.rawOutput = function(msg) { logger.debug('OUT ' + msg); };
-    })();
+    }());
 
     /**
      * Property: options.callback
@@ -154,6 +156,9 @@ var OneSocialWeb = function(options) {
 	if (type === 'subscribe') {
 	    // Received a subscription request
 	    options.callback.presence_subscription_request(from);
+	} else if (type =='subscribed') {
+	    logger.info("Subscribed");
+	    options.callback.presence(from, 'subscribed');
 	}
 	x = message.children('x');
 	if (x.length > 0) {
@@ -193,10 +198,14 @@ var OneSocialWeb = function(options) {
 	     options.callback.message(to, from, type, Strophe.getText(elems[0])); 
 	 }
 
+	 if (type === "headline") {
+	     callbacks.activities(msg);
+	 }
+
 	 // Capture any nickname events
 	 event = $('event items item nick', msg);	 
 	 if (event.length > 0) {
-	     for (index = 0; index < event.length; index ++) {
+	     for (index = 0; index < event.length; index = index + 1) {
 		 options.callback.nickname(from, event[index].textContent);
 	     }
 	 }
@@ -204,7 +213,7 @@ var OneSocialWeb = function(options) {
 	 // Capture any avatar change events
 	 event = $('event items item data', msg);
 	 if (event.length > 0) {
-	     options.callback.avatar(jid, event[0].textContent);
+	     options.callback.avatar(from, event[0].textContent);
 	 }
 
 	 return true;
@@ -242,6 +251,8 @@ var OneSocialWeb = function(options) {
 	    .c('email').t(email_address);
 	logger.debug(iq.tree());
 	connection.sendIQ(iq.tree(), function(stanza) {
+	    connection.disconnect();
+	    connection.reset();
 	    success_callback();
 	}, function(stanza) {
 	    var error, message, code;
@@ -279,17 +290,19 @@ var OneSocialWeb = function(options) {
 
     callbacks.roster = {};
     callbacks.roster.success = function(stanza) {
+	logger.debug("Rooster request successful");
 	$(stanza).find("item").each(function() {
 	    var item, jid, groups;
 	    item = $(this);
 	    jid = item.attr('jid');
-	    probe_presence(jid);
+	    logger.info(jid + " " + item.attr('name') + " " + item.attr("subscription"));
+	    //probe_presence(jid);
 	    // Generate a list of groups which this contact is a member of
 	    groups = jQuery.map(item.children('group'), function(element) { 
 		return $(element).text(); 
 	    });
 	    options.callback.contact(jid, item.attr('name'), groups);
-	    vcard(jid);
+	    //vcard(jid);
 	});
     };
     callbacks.roster.failure = function(stanza) {
@@ -311,8 +324,12 @@ var OneSocialWeb = function(options) {
     };
 
     callbacks.activities = function(stanza) {
+	var object_type;
 	$(stanza).find("entry").each(function() {
-	    options.callback.activity($(this).find("actor uri").text(), $(this).find("title").text());
+	    object_type = $(this).find("object object-type").text();
+	    if (object_type === "http://onesocialweb.org/spec/1.0/object/status") {
+		options.callback.activity($(this).find("actor uri").text(), $(this).find("object content").text());
+	    }
 	});
     };
 
@@ -372,21 +389,7 @@ var OneSocialWeb = function(options) {
 	    .up()
 	    .c('osw:acl-subject', {'type':'http://onesocialweb.org/spec/1.0/acl/subject/everyone'});
 
-	var stanza=sub.tree();
-	connection.sendIQ(stanza, 
-                          function(stanza) {
-			          sendiq_good = true;
-			          logger.info("iq sent succesfully.");
-		          },
-		          function(stz) {
-			      
-                              if (stz) {
-			          sendiq_good = true;
-			      }
-			      logger.debug(stz);
-			      logger.error("failed to send iq.");
-			      
-		          });
+	connection.sendIQ(sub.tree());
     };
 
     callbacks.subscription = function(stanza) {
@@ -491,13 +494,16 @@ var OneSocialWeb = function(options) {
 	}).c('item', {
 	    'jid': jid,
 	    'name': jid
-	}).c('group').t('MyBuddies'));
+	}).c('group').t('MyBuddies'), callbacks.roster.success);
 	// Send a subscription request to a user
 	connection.send($pres({
 	    'from': connection.jid,
 	    'to': jid,
 	    'type': 'subscribe'
-	}));	    
+	}), function(stanza) {
+	    logger.info("Subscription request successful");
+	    logger.debug(stanza);
+	});	    
     };
 
     /**
@@ -508,8 +514,9 @@ var OneSocialWeb = function(options) {
      * Parameters:
      *
      * jid - The Jabber identifier of the user requesting to be a contact
+     * group - The name of the group which this contact should belong to
      **/
-    confirm_contact = function(jid) {
+    confirm_contact = function(jid, group) {
 	connection.sendIQ($iq({
 	    'type': 'set'
 	}).c('query', {
@@ -517,11 +524,14 @@ var OneSocialWeb = function(options) {
 	}).c('item', {
 	    'jid': jid,
 	    'name': jid
-	}).c('group').t('MyBuddies'));
+	}).c('group').t(group), callbacks.roster.success);
 	connection.send($pres({
 	    'from': connection.jid,
 	    'to': jid,
 	    'type': 'subscribed'
+	}, function(stanza) {
+	    logger.info("Subscription request successful");
+	    logger.debug(stanza);
 	}));	    
     };
 
@@ -551,6 +561,49 @@ var OneSocialWeb = function(options) {
 	});
     };
 
+    /**
+     * Function: update_contact
+     *
+     * Updates a contact in the rooster
+     *
+     * Parameters: 
+     * 
+     * jid - The Jabber identifier of the user you wish to update
+     * name - Name of the contact
+     * groups - A list of group names
+     **/
+    update_contact = function(jid, name, groups) {
+	var iq = $iq({
+	    'type': 'set',
+	    'from': connection.jid
+	}).c('query', {
+	    'xmlns': OneSocialWeb.XMLNS.ROSTER
+	}).c('item', {
+	    'jid' : jid,
+	    'name' : name, 
+	    'subscription' : 'both'
+	});
+	$.each(groups, function(index, group) {
+	    iq.c('group').t(group).up();
+	});
+	connection.sendIQ(iq);
+    };
+
+    edit_profile = function(nickname) {
+	connection.sendIQ($iq({
+	    'type': 'set',
+	    'from': connection.jid
+	}).c('pubsub', {
+	    'xmlns': OneSocialWeb.SCHEMA.PUBSUB
+	}).c('publish', {
+	    'node' : OneSocialWeb.SCHEMA.NICKNAME
+	}).c('item', {
+	    'id': 0
+	}).c('nick', {
+	    'xmlns' : OneSocialWeb.SCHEMA.NICKNAME
+	}).t(nickname));
+    };
+
     that = {};
     that.register = register;
     that.authenticate = authenticate;
@@ -559,17 +612,20 @@ var OneSocialWeb = function(options) {
     that.status = status;
     that.subscriptions = subscriptions;
     that.add_contact = add_contact;
+    that.update_contact = update_contact;
     that.confirm_contact = confirm_contact;
     that.follow = follow;
     that.unfollow = unfollow;
     that.vcard = vcard;
+    that.edit_profile = edit_profile;
     return that;
 };
 OneSocialWeb.SCHEMA = {
     PUBSUB: 'http://jabber.org/protocol/pubsub',
     ATOM: 'http://www.w3.org/2005/Atom',
     ACTIVITY_STREAMS: "http://activitystrea.ms/spec/1.0/",
-    ONESOCIALWEB: 'http://onesocialweb.org/spec/1.0/'
+    ONESOCIALWEB: 'http://onesocialweb.org/spec/1.0/',
+    NICKNAME: 'http://jabber.org/protocol/nick'
 };
 OneSocialWeb.XMLNS = {
     CLIENT: 'jabber:client',
