@@ -17,6 +17,8 @@ This is an experiment in connecting to a OneSocialWeb server using Javascript.
 * Ensure you have a local OneSocialWeb server running and an instance of the OneSocialWeb web client
 * Host the files on your web server
 
+You can re-use the osw-js file in your own projects. Read the [documentation](http://owengriffin.github.com/osw-js/files/osw-js.html).
+
 # Build Environment
 
 ## JSLint
@@ -40,6 +42,10 @@ The following command will use NaturalDocs to generate documentation
 You will need to have installed NaturalDocs for this command to work:
 
     $ sudo apt-get install naturaldocs
+
+If you want to push the documentation to the GitHub pages then run the following command:
+
+    $ rake naturaldocs:site
 
 ## Tests
 

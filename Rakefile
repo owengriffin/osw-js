@@ -10,6 +10,16 @@ begin
         end
       end
     end
+    task :site do
+      sh "rm -rf /tmp/osw-js"
+      sh "git clone git@github.com:owengriffin/osw-js.git /tmp/osw-js"
+      sh "git --git-dir=/tmp/osw-js/.git --work-tree=/tmp/osw-js branch --track gh-pages origin/gh-pages"
+      sh "git --git-dir=/tmp/osw-js/.git --work-tree=/tmp/osw-js checkout gh-pages"
+      sh "naturaldocs -i src/ -o html /tmp/osw-js -p /tmp/osw-js"
+      sh "git --git-dir=/tmp/osw-js/.git --work-tree=/tmp/osw-js add ."
+      sh "git --git-dir=/tmp/osw-js/.git --work-tree=/tmp/osw-js commit -m 'Automatic site generation.'"
+      sh "git --git-dir=/tmp/osw-js/.git --work-tree=/tmp/osw-js push origin"
+    end
   end
 end
 
