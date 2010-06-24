@@ -50,4 +50,14 @@ begin
   end
 end
 
+begin
+  require 'cucumber'
+  require 'cucumber/rake/task'
+  Cucumber::Rake::Task.new(:features) do |t|
+    t.cucumber_opts = "features --format pretty"
+  end
+rescue LoadError
+  puts "Cucumber needs to be installed before any tests can be executed"
+end
+
 task :default => ["naturaldocs:generate", "jslint:jslint"]

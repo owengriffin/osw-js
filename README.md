@@ -53,6 +53,10 @@ To run all of the tests run the following command:
 
     $ cucumber .
     
+Or by using the rake task:
+
+    $ rake features
+    
 More information on the testing setup can be
 seen on [Testing Browsers Concurrently](http://www.owengriffin.com/posts/2010/06/11/Testing_browsers_concurrently.html).
 
