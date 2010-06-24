@@ -50,4 +50,4 @@ begin
   end
 end
 
-task :default => ["naturaldocs:generate"]
+task :default => ["naturaldocs:generate", "jslint:jslint"]
