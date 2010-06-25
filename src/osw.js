@@ -288,27 +288,6 @@ var OneSocialWeb = function(options) {
 	    }).tree());
     };
 
-    callbacks.roster = {};
-    callbacks.roster.success = function(stanza) {
-	logger.debug("Rooster request successful");
-	$(stanza).find("item").each(function() {
-	    var item, jid, groups;
-	    item = $(this);
-	    jid = item.attr('jid');
-	    logger.info(jid + " " + item.attr('name') + " " + item.attr("subscription"));
-	    //probe_presence(jid);
-	    // Generate a list of groups which this contact is a member of
-	    groups = jQuery.map(item.children('group'), function(element) { 
-		return $(element).text(); 
-	    });
-	    options.callback.contact(jid, item.attr('name'), groups);
-	    //vcard(jid);
-	});
-    };
-    callbacks.roster.failure = function(stanza) {
-	logger.error("Unable to list roster");
-    };	
-
     /**
      * Function: contacts
      * 
@@ -316,11 +295,14 @@ var OneSocialWeb = function(options) {
      * options.callback.contact function when each contact is received from the server.
      */
     contacts = function() {
-	var iq = $iq({
-	    'from': connection.jid,
-	    'type': 'get'
-	}).c('query', { xmlns:OneSocialWeb.XMLNS.ROSTER });
-	connection.sendIQ(iq.tree(), callbacks.roster.success, callbacks.roster.failure);
+	connection.roster.get(function(items) {
+	    var index, contact;
+	    logger.debug("Rooster request successful");
+	    for (index = 0; index < items.length; index = index + 1) {
+		contact = items[index];
+		options.callback.contact(contact.jid, contact.name, contact.groups);
+	    }    
+	});
     };
 
     callbacks.activities = function(stanza) {
@@ -424,23 +406,15 @@ var OneSocialWeb = function(options) {
      **/
     follow = function(jid, callback) {
 	logger.info('Requesting to follow: ' + jid);
-	connection.sendIQ($iq({
-	    'from': connection.jid, 
-	    'type': 'set',
-	    'to': jid
-	}).c('pubsub', { 
-	    'xmlns': OneSocialWeb.SCHEMA.PUBSUB
-	}).c('subscribe', { 
-	    'xmlns': OneSocialWeb.SCHEMA.PUBSUB,
-	    'node': OneSocialWeb.XMLNS.MICROBLOG,
-	    'jid' : Strophe.getBareJidFromJid(connection.jid)
-	}).tree(), function(stanza) {
-	    logger.info("Subscribe request complete");
-	    logger.debug(stanza);
-	    callback();
-	}, function(stanza) {
-	    logger.info("Subscribe request unsuccssful");
-	    logger.debug(stanza);
+	connection.pubsub.subscribe(jid, jid, OneSocialWeb.XMLNS.MICROBLOG, null, null, function(stanza) {
+	    if($(stanza).attr('type') == 'result') {
+		logger.info("Subscribe request complete");
+		logger.debug(stanza);
+		callback();
+	    } else {
+		logger.info("Subscribe request unsuccssful");
+		logger.debug(stanza);
+	    }
 	});
     };
 
@@ -456,23 +430,15 @@ var OneSocialWeb = function(options) {
      **/
     unfollow = function(jid, callback) {
 	logger.info('Requesting to unfollow: ' + jid);
-	connection.sendIQ($iq({
-	    'from': connection.jid, 
-	    'type': 'set',
-	    'to': jid
-	}).c('pubsub', { 
-	    'xmlns': OneSocialWeb.SCHEMA.PUBSUB
-	}).c('unsubscribe', { 
-	    'xmlns': OneSocialWeb.SCHEMA.PUBSUB,
-	    'node': OneSocialWeb.XMLNS.MICROBLOG,
-	    'jid' : Strophe.getBareJidFromJid(connection.jid)
-	}).tree(), function(stanza) {
-	    logger.info("Unsubscribe request complete");
-	    logger.debug(stanza);
-	    callback();
-	}, function(stanza) {
-	    logger.info("Unsubscribe request unsuccssful");
-	    logger.debug(stanza);
+	connection.pubsub.unsubscribe( jid, jid, OneSocialWeb.XMLNS.MICROBLOG, function(stanza) {
+	    if($(stanza).attr('type') == 'result') {
+		logger.info("Unsubscribe request complete");
+		logger.debug(stanza);
+		callback();
+	    } else {
+		logger.info("Unsubscribe request unsuccssful");
+		logger.debug(stanza);
+	    }
 	});
     };
 
@@ -484,55 +450,25 @@ var OneSocialWeb = function(options) {
      * Parameters:
      * 
      * jid - The Jabber identifier of the user to add
+     * group - The name of the group which this contact should belong to
      **/
-    add_contact = function(jid) {
+    add_contact = function(jid, group) {
 	logger.info('Adding contact ' + jid);
-	// IQ message which adds the contact to the roster
-	connection.sendIQ($iq({
-	    'from': connection.jid,
-	    'type': 'set'
-	}).c('item', {
-	    'jid': jid,
-	    'name': jid
-	}).c('group').t('MyBuddies'), callbacks.roster.success);
-	// Send a subscription request to a user
-	connection.send($pres({
-	    'from': connection.jid,
-	    'to': jid,
-	    'type': 'subscribe'
-	}), function(stanza) {
-	    logger.info("Subscription request successful");
-	    logger.debug(stanza);
-	});	    
+	connection.roster.subscribe(jid);	    
     };
 
     /**
      * Function: confirm_contact
      *
-     * Confirm the addition of a contact 
+     * Confirm the addition of a contact. This will *not* add the contact
+     * to the current user's roster.
      *
      * Parameters:
      *
      * jid - The Jabber identifier of the user requesting to be a contact
-     * group - The name of the group which this contact should belong to
      **/
-    confirm_contact = function(jid, group) {
-	connection.sendIQ($iq({
-	    'type': 'set'
-	}).c('query', {
-	    'xmlns': OneSocialWeb.XMLNS.ROSTER
-	}).c('item', {
-	    'jid': jid,
-	    'name': jid
-	}).c('group').t(group), callbacks.roster.success);
-	connection.send($pres({
-	    'from': connection.jid,
-	    'to': jid,
-	    'type': 'subscribed'
-	}, function(stanza) {
-	    logger.info("Subscription request successful");
-	    logger.debug(stanza);
-	}));	    
+    confirm_contact = function(jid) {
+	connection.roster.authorize(jid);
     };
 
     /**
@@ -573,20 +509,7 @@ var OneSocialWeb = function(options) {
      * groups - A list of group names
      **/
     update_contact = function(jid, name, groups) {
-	var iq = $iq({
-	    'type': 'set',
-	    'from': connection.jid
-	}).c('query', {
-	    'xmlns': OneSocialWeb.XMLNS.ROSTER
-	}).c('item', {
-	    'jid' : jid,
-	    'name' : name, 
-	    'subscription' : 'both'
-	});
-	$.each(groups, function(index, group) {
-	    iq.c('group').t(group).up();
-	});
-	connection.sendIQ(iq);
+	connection.roster.update(jid, name, groups);
     };
 
     edit_profile = function(nickname) {

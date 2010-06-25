@@ -307,7 +307,8 @@ var ExampleOSWClient = function() {
 		$('#status').text('You have received a presence subscription from: ' + jid);
 		$('#status').append(button);
 		button.bind('click', function() {
-		    client.confirm_contact(jid, 'Friends');
+		    client.confirm_contact(jid);
+		    client.add_contact(jid, 'Friends');
 		    $('#status').html('');
 		});
 	    },
